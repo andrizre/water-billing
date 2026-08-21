@@ -7,7 +7,10 @@ import {
   FileText,
   Printer,
   Droplets,
-  CheckCircle2
+  CheckCircle2,
+  RefreshCw,
+  Zap,
+  Activity
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '../../components/layout/PageHeader';
@@ -30,6 +33,8 @@ export const CustomerDashboard: React.FC = () => {
   const { settings } = useSettings();
   const [data, setData] = useState<CustomerDashboardData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
   // Modals
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
@@ -37,34 +42,71 @@ export const CustomerDashboard: React.FC = () => {
   const [billModalOpen, setBillModalOpen] = useState<boolean>(false);
   const [receiptModalOpen, setReceiptModalOpen] = useState<boolean>(false);
 
-  const fetchCustomerData = useCallback(async () => {
+  const fetchCustomerData = useCallback(async (isManual = false) => {
     try {
-      setLoading(true);
+      if (isManual) setRefreshing(true);
+      else if (!data) setLoading(true);
+
       const res = await api.getDashboardSummary();
       setData(res);
+      setLastUpdated(new Date());
     } catch (err) {
       console.error('Failed to load customer dashboard:', err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  }, []);
+  }, [data]);
 
   useEffect(() => {
     fetchCustomerData();
   }, [fetchCustomerData]);
 
-  if (loading || !data) {
+  if (loading && !data) {
     return <LoadingSpinner text="Memuat data tagihan dan pemakaian air Anda..." />;
   }
+
+  if (!data) return null;
 
   const { customer, meter, total_unpaid, active_bill, recent_payments, usage_history } = data;
 
   return (
-    <div>
+    <div className="fade-in">
       <PageHeader
         title={`Halo, ${customer?.full_name || user?.fullName || 'Warga'}`}
         subtitle={`Nomor Pelanggan: ${customer?.customer_no || user?.username} | Wilayah: ${customer?.rt_rw || 'Dusun Krajan'}`}
+        action={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={<RefreshCw size={14} className={refreshing ? 'spin-anim' : ''} />}
+              onClick={() => fetchCustomerData(true)}
+              disabled={refreshing}
+            >
+              Segarkan
+            </Button>
+          </div>
+        }
       />
+
+      {/* Real-time sync timestamp */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          fontSize: 12,
+          color: 'var(--slate-500)',
+          marginBottom: 16,
+          padding: '0 4px',
+        }}
+      >
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Zap size={13} color="var(--primary-500)" />
+          Terhubung ke data cloud &middot; Terakhir diperbarui: {lastUpdated.toLocaleTimeString('id-ID')}
+        </span>
+      </div>
 
       {/* Active Unpaid Bill Alert Banner if Any */}
       {total_unpaid > 0 ? (
@@ -239,7 +281,7 @@ export const CustomerDashboard: React.FC = () => {
                 </tr>
               ) : (
                 recent_payments.map((p) => (
-                  <tr key={p.id}>
+                  <tr key={p.id} className="row-hover-highlight">
                     <td style={{ fontWeight: 700 }}>{p.payment_no}</td>
                     <td>{formatDateTime(p.payment_date || p.created_at)}</td>
                     <td>{p.period_month && p.period_year ? formatPeriod(p.period_month, p.period_year) : '-'}</td>

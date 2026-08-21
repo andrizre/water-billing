@@ -1,11 +1,14 @@
 import { storage } from './storage';
 import { mockApiService } from './mockApiService';
+import { supabaseApiService } from './supabaseApiService';
+import { isSupabaseConfigured } from './supabaseClient';
 
 const GAS_API_URL = import.meta.env.VITE_GAS_API_URL || '';
 const SQLITE_API_URL = import.meta.env.VITE_SQLITE_API_URL || 'http://localhost:3001';
 const FORCE_MOCK = import.meta.env.VITE_ENABLE_MOCK_MODE === 'true';
 
 let isSqliteAvailable: boolean | null = null;
+let activeBackendType: 'gas' | 'sqlite' | 'supabase' | 'mock' = 'mock';
 
 /**
  * Check if the local SQLite API server is running
@@ -26,11 +29,21 @@ async function checkSqliteServer(): Promise<boolean> {
 }
 
 /**
- * Universal GAS / SQLite / Mock API Requester
+ * Returns the currently active backend type
+ */
+export function getActiveBackend(): 'gas' | 'sqlite' | 'supabase' | 'mock' {
+  return activeBackendType;
+}
+
+/**
+ * Universal Multi-Backend API Requester
+ * Priority: GAS -> SQLite -> Supabase -> Mock (localStorage)
+ * "Jika backend belum dimasukan, otomatis Supabase yang diload"
  */
 async function callApi<T = any>(action: string, data: any = {}): Promise<T> {
   // If Force Mock mode is explicitly true, use Mock immediately
   if (FORCE_MOCK) {
+    activeBackendType = 'mock';
     return handleMockCall<T>(action, data);
   }
 
@@ -51,6 +64,7 @@ async function callApi<T = any>(action: string, data: any = {}): Promise<T> {
       if (response.ok) {
         const result = await response.json();
         if (result.success || result.status === 200 || result.status === 201) {
+          activeBackendType = 'gas';
           return (result.data || result) as T;
         }
         throw new Error(result.message || result.error || 'Permintaan gagal diproses.');
@@ -77,18 +91,134 @@ async function callApi<T = any>(action: string, data: any = {}): Promise<T> {
       if (response.ok) {
         const result = await response.json();
         if (result.success !== false) {
+          activeBackendType = 'sqlite';
           return unwrapServerResponse(action, result) as T;
         }
         throw new Error(result.error || 'Permintaan gagal pada server SQLite.');
       }
     } catch (err: any) {
-      console.warn(`SQLite server call failed for "${action}", falling back to mock:`, err.message);
+      console.warn(`SQLite server call failed for "${action}", falling back:`, err.message);
       isSqliteAvailable = false; // Disable until reload
     }
   }
 
-  // 3. Fallback to In-Browser Simulated Storage
+  // 3. Check Supabase (Default Cloud Database)
+  if (isSupabaseConfigured()) {
+    try {
+      const result = await handleSupabaseCall<T>(action, data);
+      activeBackendType = 'supabase';
+      return result;
+    } catch (err: any) {
+      console.warn(`Supabase call failed for "${action}", falling back to mock:`, err.message);
+    }
+  }
+
+  // 4. Fallback to In-Browser Simulated Storage
+  activeBackendType = 'mock';
   return handleMockCall<T>(action, data);
+}
+
+/**
+ * Route actions to Supabase service
+ */
+async function handleSupabaseCall<T = any>(action: string, data: any): Promise<T> {
+  const token = storage.getToken() || '';
+
+  switch (action) {
+    case 'auth_login':
+      return (await supabaseApiService.login(data.username, data.password)) as T;
+    case 'auth_verify':
+      return (await supabaseApiService.verifyAuth(token)) as T;
+    case 'auth_change_password':
+      return (await supabaseApiService.changePassword(data.old_password, data.new_password)) as T;
+    case 'public_check_bill':
+      return (await supabaseApiService.publicCheckBill(data.customer_no)) as T;
+
+    case 'users_list':
+      return (await supabaseApiService.getUsers(data)) as T;
+    case 'users_create':
+      return (await supabaseApiService.createUser(data)) as T;
+    case 'users_update':
+      return (await supabaseApiService.updateUser(data)) as T;
+    case 'users_delete':
+      return (await supabaseApiService.deleteUser(data.id)) as T;
+    case 'users_reset_password':
+      return (await supabaseApiService.resetUserPassword(data.id)) as T;
+
+    case 'customers_list':
+      return (await supabaseApiService.getCustomers(data)) as T;
+    case 'customers_get':
+      return (await supabaseApiService.getCustomerById(data.id || data.customer_id)) as T;
+    case 'customers_create':
+      return (await supabaseApiService.createCustomer(data)) as T;
+    case 'customers_update':
+      return (await supabaseApiService.updateCustomer(data)) as T;
+    case 'customers_delete':
+      return (await supabaseApiService.deleteCustomer(data.id)) as T;
+
+    case 'meters_list':
+      return (await supabaseApiService.getMeters(data)) as T;
+    case 'meters_create':
+      return (await supabaseApiService.createMeter(data)) as T;
+    case 'meters_update':
+      return (await supabaseApiService.updateMeter(data)) as T;
+    case 'meters_delete':
+      return (await supabaseApiService.deleteMeter(data.id)) as T;
+
+    case 'readings_list':
+      return (await supabaseApiService.getReadings(data)) as T;
+    case 'readings_get_prev':
+      return (await supabaseApiService.getPrevReading(data.customer_id)) as T;
+    case 'readings_record':
+      return (await supabaseApiService.recordReading(data)) as T;
+
+    case 'tariffs_list':
+      return (await supabaseApiService.getTariffs()) as T;
+    case 'tariffs_create':
+      return (await supabaseApiService.createTariff(data)) as T;
+    case 'tariffs_update':
+      return (await supabaseApiService.updateTariff(data)) as T;
+
+    case 'bills_list':
+      return (await supabaseApiService.getBills(data)) as T;
+    case 'bills_get':
+      return (await supabaseApiService.getBillById(data.id || data.bill_id)) as T;
+    case 'bills_generate_batch':
+      return (await supabaseApiService.generateBatchBills(data.period_month, data.period_year)) as T;
+    case 'bills_update_status':
+      return (await supabaseApiService.updateBillStatus(data.id, data.status)) as T;
+
+    case 'payments_list':
+      return (await supabaseApiService.getPayments(data)) as T;
+    case 'payments_record':
+      return (await supabaseApiService.recordPayment(data)) as T;
+    case 'payments_receipt':
+      return (await supabaseApiService.getPaymentReceipt(data.id || data.payment_id)) as T;
+
+    case 'reports_summary': {
+      const user = storage.getUser();
+      return (await supabaseApiService.getDashboardSummary(user?.role || 'admin', user?.customerId)) as T;
+    }
+    case 'reports_billing':
+      return (await supabaseApiService.getReports('billing', data)) as T;
+    case 'reports_payment':
+      return (await supabaseApiService.getReports('payment', data)) as T;
+    case 'reports_arrears':
+      return (await supabaseApiService.getReports('arrears', data)) as T;
+    case 'reports_usage':
+      return (await supabaseApiService.getReports('usage', data)) as T;
+
+    case 'settings_get':
+      return (await supabaseApiService.getSettings()) as T;
+    case 'settings_update':
+      return (await supabaseApiService.updateSettings(data)) as T;
+
+    case 'audit_list':
+      return (await supabaseApiService.getAuditLogs()) as T;
+
+    default:
+      throw new Error(`Aksi "${action}" tidak didukung pada Supabase.`);
+  }
 }
 
 /**
@@ -323,5 +453,8 @@ export const api = {
   getAuditLogs: (params?: any) => callApi('audit_list', params),
 
   // Reset demo
-  resetMockData: () => mockApiService.resetToDefault()
+  resetMockData: () => mockApiService.resetToDefault(),
+
+  // Active backend helper
+  getActiveBackend
 };

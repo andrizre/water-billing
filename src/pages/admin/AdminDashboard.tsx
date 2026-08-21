@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Users,
   Gauge,
@@ -9,7 +9,10 @@ import {
   FileSpreadsheet,
   PlusCircle,
   Clock,
-  Printer
+  Printer,
+  RefreshCw,
+  Zap,
+  Activity
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '../../components/layout/PageHeader';
@@ -29,30 +32,48 @@ import { formatRupiah, formatM3, formatDateTime, formatPeriod } from '../../util
 export const AdminDashboard: React.FC = () => {
   const [data, setData] = useState<AdminDashboardData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [autoRefresh, setAutoRefresh] = useState<boolean>(true);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [billModalOpen, setBillModalOpen] = useState<boolean>(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState<boolean>(false);
 
-  const fetchDashboardData = useCallback(async () => {
+  const fetchDashboardData = useCallback(async (isManual = false) => {
     try {
-      setLoading(true);
+      if (isManual) setRefreshing(true);
+      else if (!data) setLoading(true);
+
       const res = await api.getDashboardSummary();
       setData(res);
+      setLastUpdated(new Date());
     } catch (err) {
       console.error('Failed to load dashboard:', err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  }, []);
+  }, [data]);
 
   useEffect(() => {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  if (loading || !data) {
+  // Auto refresh every 15 seconds when enabled
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const timer = setInterval(() => {
+      fetchDashboardData(false);
+    }, 15000);
+    return () => clearInterval(timer);
+  }, [autoRefresh, fetchDashboardData]);
+
+  if (loading && !data) {
     return <LoadingSpinner text="Memuat data statistik dashboard..." />;
   }
+
+  if (!data) return null;
 
   const { stats, monthly_trends, recent_payments } = data;
 
@@ -62,12 +83,47 @@ export const AdminDashboard: React.FC = () => {
   }));
 
   return (
-    <div>
+    <div className="fade-in">
       <PageHeader
         title="Dashboard Utama Administrator"
         subtitle="Ringkasan operasional air minum desa, keuangan, dan status pelanggan terkini."
         action={
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            {/* Auto-Refresh Toggle */}
+            <button
+              type="button"
+              onClick={() => setAutoRefresh(!autoRefresh)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                fontSize: 12,
+                fontWeight: 600,
+                padding: '6px 12px',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--slate-200)',
+                backgroundColor: autoRefresh ? 'var(--primary-50)' : '#ffffff',
+                color: autoRefresh ? 'var(--primary-700)' : 'var(--slate-600)',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+              title="Aktifkan/nonaktifkan pembaruan otomatis setiap 15 detik"
+            >
+              <Activity size={13} className={autoRefresh ? 'text-primary-600 animate-pulse' : ''} />
+              <span>Live: {autoRefresh ? 'ON' : 'OFF'}</span>
+            </button>
+
+            {/* Manual Refresh */}
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={<RefreshCw size={14} className={refreshing ? 'spin-anim' : ''} />}
+              onClick={() => fetchDashboardData(true)}
+              disabled={refreshing}
+            >
+              Segarkan
+            </Button>
+
             <Link to="/admin/bills">
               <Button variant="primary" size="sm" icon={<PlusCircle size={15} />}>
                 Kelola Tagihan
@@ -81,6 +137,29 @@ export const AdminDashboard: React.FC = () => {
           </div>
         }
       />
+
+      {/* Real-time sync timestamp */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          fontSize: 12,
+          color: 'var(--slate-500)',
+          marginBottom: 16,
+          padding: '0 4px',
+        }}
+      >
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Zap size={13} color="var(--primary-500)" />
+          Terhubung ke backend cloud &middot; Terakhir diperbarui: {lastUpdated.toLocaleTimeString('id-ID')}
+        </span>
+        {autoRefresh && (
+          <span style={{ fontSize: 11, color: 'var(--success-600)', fontWeight: 600 }}>
+            ● Auto-sync aktif (15s)
+          </span>
+        )}
+      </div>
 
       {/* 5 Core Statistics Cards */}
       <div className="stat-card-grid">
@@ -192,7 +271,7 @@ export const AdminDashboard: React.FC = () => {
             </thead>
             <tbody>
               {recent_payments.map((p) => (
-                <tr key={p.id}>
+                <tr key={p.id} className="row-hover-highlight">
                   <td style={{ fontWeight: 700 }}>{p.payment_no}</td>
                   <td>{formatDateTime(p.payment_date || p.created_at)}</td>
                   <td>
