@@ -162,6 +162,69 @@ export interface AuditLog {
   created_at: string;
 }
 
+// 1. Pengumuman / Broadcast
+export interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  target_audience: 'all' | 'operator' | 'customer';
+  priority: 'normal' | 'urgent';
+  is_active: boolean;
+  created_by?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// 2. Keluhan / Pengaduan Pelanggan
+export type ComplaintCategory =
+  | 'pipa_bocor'
+  | 'air_mati'
+  | 'meter_rusak'
+  | 'tagihan_salah'
+  | 'kualitas_air'
+  | 'lainnya';
+
+export type ComplaintStatus = 'Menunggu' | 'Diproses' | 'Selesai' | 'Ditolak';
+
+export interface Complaint {
+  id: string;
+  complaint_no: string;
+  customer_id: string;
+  customer_name: string;
+  customer_no: string;
+  phone?: string;
+  title: string;
+  description: string;
+  category: ComplaintCategory;
+  status: ComplaintStatus;
+  response_notes?: string;
+  handled_by?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// 3. Pengajuan Perubahan Langganan / Golongan Tarif
+export type SubscriptionRequestStatus = 'Menunggu' | 'Disetujui' | 'Ditolak';
+
+export interface SubscriptionRequest {
+  id: string;
+  request_no: string;
+  customer_id: string;
+  customer_name: string;
+  customer_no: string;
+  phone?: string;
+  current_tariff_id: string;
+  current_tariff_name: string;
+  requested_tariff_id: string;
+  requested_tariff_name: string;
+  reason: string;
+  status: SubscriptionRequestStatus;
+  response_notes?: string;
+  handled_by?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface MonthlyTrend {
   month: number;
   year: number;

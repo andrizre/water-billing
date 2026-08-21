@@ -7,7 +7,10 @@ import {
   initialBills,
   initialPayments,
   initialSettings,
-  initialAuditLogs
+  initialAuditLogs,
+  initialAnnouncements,
+  initialComplaints,
+  initialSubscriptionRequests
 } from './mockData';
 import { storage } from './storage';
 import { calculateTieredBillBreakdown } from '../utils/calculator';
@@ -22,7 +25,10 @@ import {
   SystemSettings,
   AuditLog,
   AdminDashboardData,
-  CustomerDashboardData
+  CustomerDashboardData,
+  Announcement,
+  Complaint,
+  SubscriptionRequest
 } from '../types';
 
 interface MockDatabase {
@@ -35,6 +41,9 @@ interface MockDatabase {
   payments: Payment[];
   settings: SystemSettings;
   auditLogs: AuditLog[];
+  announcements: Announcement[];
+  complaints: Complaint[];
+  subscriptionRequests: SubscriptionRequest[];
 }
 
 function getDatabase(): MockDatabase {
@@ -49,10 +58,16 @@ function getDatabase(): MockDatabase {
       bills: [...initialBills],
       payments: [...initialPayments],
       settings: { ...initialSettings },
-      auditLogs: [...initialAuditLogs]
+      auditLogs: [...initialAuditLogs],
+      announcements: [...initialAnnouncements],
+      complaints: [...initialComplaints],
+      subscriptionRequests: [...initialSubscriptionRequests]
     };
     storage.setMockDb(db);
   }
+  if (!db.announcements) db.announcements = [...initialAnnouncements];
+  if (!db.complaints) db.complaints = [...initialComplaints];
+  if (!db.subscriptionRequests) db.subscriptionRequests = [...initialSubscriptionRequests];
   return db;
 }
 
@@ -916,6 +931,165 @@ export const mockApiService = {
   async getAuditLogs(): Promise<AuditLog[]> {
     const db = getDatabase();
     return db.auditLogs;
+  },
+
+  // 11. ANNOUNCEMENTS
+  async getAnnouncements(params: any = {}): Promise<Announcement[]> {
+    const db = getDatabase();
+    let res = [...db.announcements];
+    if (params.target_audience && params.target_audience !== 'all') {
+      res = res.filter((a) => a.target_audience === 'all' || a.target_audience === params.target_audience);
+    }
+    if (params.active_only) {
+      res = res.filter((a) => a.is_active);
+    }
+    return res.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+  },
+
+  async createAnnouncement(data: any): Promise<Announcement> {
+    const db = getDatabase();
+    const id = `ANN-${Date.now().toString().slice(-6)}`;
+    const newAnn: Announcement = {
+      id,
+      title: data.title,
+      content: data.content,
+      target_audience: data.target_audience || 'all',
+      priority: data.priority || 'normal',
+      is_active: data.is_active !== undefined ? data.is_active : true,
+      created_by: 'Administrator',
+      created_at: nowTimeString()
+    };
+    db.announcements.unshift(newAnn);
+    saveDatabase(db);
+    return newAnn;
+  },
+
+  async updateAnnouncement(data: Partial<Announcement>): Promise<void> {
+    const db = getDatabase();
+    const idx = db.announcements.findIndex((a) => a.id === data.id);
+    if (idx !== -1) {
+      db.announcements[idx] = { ...db.announcements[idx], ...data, updated_at: nowTimeString() };
+      saveDatabase(db);
+    }
+  },
+
+  async deleteAnnouncement(id: string): Promise<void> {
+    const db = getDatabase();
+    db.announcements = db.announcements.filter((a) => a.id !== id);
+    saveDatabase(db);
+  },
+
+  // 12. COMPLAINTS
+  async getComplaints(params: any = {}): Promise<Complaint[]> {
+    const db = getDatabase();
+    let res = [...db.complaints];
+    if (params.customer_id) res = res.filter((c) => c.customer_id === params.customer_id);
+    if (params.status) res = res.filter((c) => c.status === params.status);
+    if (params.category) res = res.filter((c) => c.category === params.category);
+    if (params.search) {
+      const q = params.search.toLowerCase();
+      res = res.filter(
+        (c) =>
+          c.title.toLowerCase().includes(q) ||
+          c.customer_name.toLowerCase().includes(q) ||
+          c.complaint_no.toLowerCase().includes(q)
+      );
+    }
+    return res.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+  },
+
+  async createComplaint(data: any): Promise<Complaint> {
+    const db = getDatabase();
+    const id = `CMP-${Date.now().toString().slice(-6)}`;
+    const complaintNo = `LAP-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const newComp: Complaint = {
+      id,
+      complaint_no: complaintNo,
+      customer_id: data.customer_id,
+      customer_name: data.customer_name,
+      customer_no: data.customer_no,
+      phone: data.phone || '',
+      title: data.title,
+      description: data.description,
+      category: data.category || 'lainnya',
+      status: 'Menunggu',
+      created_at: nowTimeString()
+    };
+    db.complaints.unshift(newComp);
+    saveDatabase(db);
+    return newComp;
+  },
+
+  async updateComplaintStatus(id: string, status: any, responseNotes?: string): Promise<void> {
+    const db = getDatabase();
+    const idx = db.complaints.findIndex((c) => c.id === id);
+    const user = storage.getUser();
+    if (idx !== -1) {
+      db.complaints[idx] = {
+        ...db.complaints[idx],
+        status,
+        response_notes: responseNotes || undefined,
+        handled_by: user?.fullName || 'Petugas',
+        updated_at: nowTimeString()
+      };
+      saveDatabase(db);
+    }
+  },
+
+  // 13. SUBSCRIPTION REQUESTS
+  async getSubscriptionRequests(params: any = {}): Promise<SubscriptionRequest[]> {
+    const db = getDatabase();
+    let res = [...db.subscriptionRequests];
+    if (params.customer_id) res = res.filter((r) => r.customer_id === params.customer_id);
+    if (params.status) res = res.filter((r) => r.status === params.status);
+    return res.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+  },
+
+  async createSubscriptionRequest(data: any): Promise<SubscriptionRequest> {
+    const db = getDatabase();
+    const id = `REQ-${Date.now().toString().slice(-6)}`;
+    const requestNo = `AJU-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const newReq: SubscriptionRequest = {
+      id,
+      request_no: requestNo,
+      customer_id: data.customer_id,
+      customer_name: data.customer_name,
+      customer_no: data.customer_no,
+      phone: data.phone || '',
+      current_tariff_id: data.current_tariff_id,
+      current_tariff_name: data.current_tariff_name,
+      requested_tariff_id: data.requested_tariff_id,
+      requested_tariff_name: data.requested_tariff_name,
+      reason: data.reason,
+      status: 'Menunggu',
+      created_at: nowTimeString()
+    };
+    db.subscriptionRequests.unshift(newReq);
+    saveDatabase(db);
+    return newReq;
+  },
+
+  async updateSubscriptionRequestStatus(id: string, status: any, responseNotes?: string): Promise<void> {
+    const db = getDatabase();
+    const idx = db.subscriptionRequests.findIndex((r) => r.id === id);
+    const user = storage.getUser();
+    if (idx !== -1) {
+      const req = db.subscriptionRequests[idx];
+      req.status = status;
+      req.response_notes = responseNotes || undefined;
+      req.handled_by = user?.fullName || 'Administrator';
+      req.updated_at = nowTimeString();
+
+      // If approved, update customer tariff
+      if (status === 'Disetujui') {
+        const custIdx = db.customers.findIndex((c) => c.id === req.customer_id);
+        if (custIdx !== -1) {
+          db.customers[custIdx].tariff_id = req.requested_tariff_id;
+          db.customers[custIdx].tariff_name = req.requested_tariff_name;
+        }
+      }
+      saveDatabase(db);
+    }
   },
 
   async resetToDefault(): Promise<void> {

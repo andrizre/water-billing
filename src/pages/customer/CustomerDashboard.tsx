@@ -22,6 +22,7 @@ import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { UsageBarChart } from '../../components/charts/UsageBarChart';
 import { BillInvoiceModal } from '../../components/print/BillInvoicePrint';
 import { PaymentReceiptModal } from '../../components/print/PaymentReceiptPrint';
+import { AnnouncementBanner } from '../../components/common/AnnouncementBanner';
 import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
 import { api } from '../../services/api';
@@ -89,6 +90,9 @@ export const CustomerDashboard: React.FC = () => {
           </div>
         }
       />
+
+      {/* Broadcast Announcements Banner */}
+      <AnnouncementBanner />
 
       {/* Real-time sync timestamp */}
       <div

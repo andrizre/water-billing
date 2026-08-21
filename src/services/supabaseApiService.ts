@@ -982,4 +982,185 @@ export const supabaseApiService = {
     if (error) throw new Error(error.message);
     return data || [];
   },
+
+  // ==================== 11. ANNOUNCEMENTS ====================
+  async getAnnouncements(params: any = {}): Promise<any[]> {
+    const sb = supabase();
+    let query = sb.from('announcements').select('*');
+
+    if (params.target_audience && params.target_audience !== 'all') {
+      query = query.or(`target_audience.eq.all,target_audience.eq.${params.target_audience}`);
+    }
+    if (params.active_only) {
+      query = query.eq('is_active', true);
+    }
+
+    query = query.order('created_at', { ascending: false });
+
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    return data || [];
+  },
+
+  async createAnnouncement(data: any): Promise<any> {
+    const sb = supabase();
+    const id = `ANN-${Date.now().toString().slice(-6)}`;
+    const newAnn: any = {
+      id,
+      title: data.title,
+      content: data.content,
+      target_audience: data.target_audience || 'all',
+      priority: data.priority || 'normal',
+      is_active: data.is_active !== undefined ? data.is_active : true,
+      created_by: data.created_by || 'Administrator',
+    };
+
+    const { data: inserted, error } = await sb.from('announcements').insert(newAnn).select().single();
+    if (error) throw new Error(error.message);
+    return inserted;
+  },
+
+  async updateAnnouncement(data: any): Promise<void> {
+    const sb = supabase();
+    const { error } = await sb
+      .from('announcements')
+      .update({ ...data, updated_at: new Date().toISOString() })
+      .eq('id', data.id);
+    if (error) throw new Error(error.message);
+  },
+
+  async deleteAnnouncement(id: string): Promise<void> {
+    const { error } = await supabase().from('announcements').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+  },
+
+  // ==================== 12. COMPLAINTS ====================
+  async getComplaints(params: any = {}): Promise<any[]> {
+    const sb = supabase();
+    let query = sb.from('complaints').select('*');
+
+    if (params.customer_id) query = query.eq('customer_id', params.customer_id);
+    if (params.status) query = query.eq('status', params.status);
+    if (params.category) query = query.eq('category', params.category);
+    if (params.search) {
+      query = query.or(
+        `title.ilike.%${params.search}%,customer_name.ilike.%${params.search}%,complaint_no.ilike.%${params.search}%`
+      );
+    }
+
+    query = query.order('created_at', { ascending: false });
+
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    return data || [];
+  },
+
+  async createComplaint(data: any): Promise<any> {
+    const sb = supabase();
+    const id = `CMP-${Date.now().toString().slice(-6)}`;
+    const complaintNo = `LAP-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    const newComplaint: any = {
+      id,
+      complaint_no: complaintNo,
+      customer_id: data.customer_id,
+      customer_name: data.customer_name,
+      customer_no: data.customer_no,
+      phone: data.phone || '',
+      title: data.title,
+      description: data.description,
+      category: data.category || 'lainnya',
+      status: 'Menunggu',
+    };
+
+    const { data: inserted, error } = await sb.from('complaints').insert(newComplaint).select().single();
+    if (error) throw new Error(error.message);
+    return inserted;
+  },
+
+  async updateComplaintStatus(id: string, status: string, responseNotes?: string): Promise<void> {
+    const sb = supabase();
+    const user = storage.getUser();
+    const { error } = await sb
+      .from('complaints')
+      .update({
+        status,
+        response_notes: responseNotes || null,
+        handled_by: user?.fullName || user?.username || 'Petugas',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id);
+    if (error) throw new Error(error.message);
+  },
+
+  // ==================== 13. SUBSCRIPTION REQUESTS ====================
+  async getSubscriptionRequests(params: any = {}): Promise<any[]> {
+    const sb = supabase();
+    let query = sb.from('subscription_requests').select('*');
+
+    if (params.customer_id) query = query.eq('customer_id', params.customer_id);
+    if (params.status) query = query.eq('status', params.status);
+
+    query = query.order('created_at', { ascending: false });
+
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    return data || [];
+  },
+
+  async createSubscriptionRequest(data: any): Promise<any> {
+    const sb = supabase();
+    const id = `REQ-${Date.now().toString().slice(-6)}`;
+    const requestNo = `AJU-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    const newReq: any = {
+      id,
+      request_no: requestNo,
+      customer_id: data.customer_id,
+      customer_name: data.customer_name,
+      customer_no: data.customer_no,
+      phone: data.phone || '',
+      current_tariff_id: data.current_tariff_id,
+      current_tariff_name: data.current_tariff_name,
+      requested_tariff_id: data.requested_tariff_id,
+      requested_tariff_name: data.requested_tariff_name,
+      reason: data.reason,
+      status: 'Menunggu',
+    };
+
+    const { data: inserted, error } = await sb.from('subscription_requests').insert(newReq).select().single();
+    if (error) throw new Error(error.message);
+    return inserted;
+  },
+
+  async updateSubscriptionRequestStatus(id: string, status: string, responseNotes?: string): Promise<void> {
+    const sb = supabase();
+    const user = storage.getUser();
+
+    // If approved, update customer's tariff in customers table
+    if (status === 'Disetujui') {
+      const { data: req } = await sb.from('subscription_requests').select('*').eq('id', id).single();
+      if (req) {
+        await sb
+          .from('customers')
+          .update({
+            tariff_id: req.requested_tariff_id,
+            tariff_name: req.requested_tariff_name,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', req.customer_id);
+      }
+    }
+
+    const { error } = await sb
+      .from('subscription_requests')
+      .update({
+        status,
+        response_notes: responseNotes || null,
+        handled_by: user?.fullName || user?.username || 'Administrator',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id);
+    if (error) throw new Error(error.message);
+  },
 };

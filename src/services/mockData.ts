@@ -1,4 +1,17 @@
-import { User, Customer, WaterMeter, MeterReading, Tariff, Bill, Payment, SystemSettings, AuditLog } from '../types';
+import {
+  User,
+  Customer,
+  WaterMeter,
+  MeterReading,
+  Tariff,
+  Bill,
+  Payment,
+  SystemSettings,
+  AuditLog,
+  Announcement,
+  Complaint,
+  SubscriptionRequest
+} from '../types';
 
 export const initialTariffs: Tariff[] = [
   {
@@ -590,5 +603,87 @@ export const initialAuditLogs: AuditLog[] = [
     action: 'RECORD_PAYMENT',
     details: 'Penerimaan pembayaran INV-202608-0001 Rp 65.000 (Lunas)',
     created_at: '2026-08-10 10:30:00'
+  }
+];
+
+export const initialAnnouncements: Announcement[] = [
+  {
+    id: 'ANN-001',
+    title: 'Jadwal Pemeliharaan Pipa Induk Dusun Krajan',
+    content: 'Akan dilakukan perawatan dan pembersihan filter pipa utama pada hari Sabtu, 23 Agustus 2026 pukul 09.00 - 13.00 WIB. Mohon warga menampung air secukupnya.',
+    target_audience: 'all',
+    priority: 'urgent',
+    is_active: true,
+    created_by: 'Administrator Utama',
+    created_at: '2026-08-18 08:00:00'
+  },
+  {
+    id: 'ANN-002',
+    title: 'Batas Waktu Pembayaran Rekening Air Bulan Ini',
+    content: 'Diingatkan kepada seluruh warga bahwa batas pembayaran rekening air bulan Agustus adalah tanggal 20. Pembayaran dapat melalui loket kantor desa atau transfer BRI/QRIS.',
+    target_audience: 'customer',
+    priority: 'normal',
+    is_active: true,
+    created_by: 'Administrator Utama',
+    created_at: '2026-08-15 08:00:00'
+  },
+  {
+    id: 'ANN-003',
+    title: 'Instruksi Pencatatan Meteran Akhir Bulan',
+    content: 'Kepada seluruh petugas lapangan, harap menyelesaikan input angka meter paling lambat tanggal 10 setiap bulannya agar pembuatan faktur berjalan tepat waktu.',
+    target_audience: 'operator',
+    priority: 'normal',
+    is_active: true,
+    created_by: 'Administrator Utama',
+    created_at: '2026-08-10 08:00:00'
+  }
+];
+
+export const initialComplaints: Complaint[] = [
+  {
+    id: 'CMP-001',
+    complaint_no: 'LAP-202608-0001',
+    customer_id: 'CUST-ID-02',
+    customer_name: 'Ibu Siti Aminah',
+    customer_no: 'CUST-2026-0002',
+    phone: '081234567802',
+    title: 'Tekanan Air Sangat Kecil Sejak Kemarin',
+    description: 'Aliran air yang keluar dari kran rumah sangat pelan terutama saat pagi hari sekitar pukul 06.00 WIB.',
+    category: 'air_mati',
+    status: 'Diproses',
+    response_notes: 'Petugas sudah ditugaskan untuk mengecek pipa distribusi di RT 01/RW 01.',
+    handled_by: 'Petugas Lapangan',
+    created_at: '2026-08-16 09:00:00'
+  },
+  {
+    id: 'CMP-002',
+    complaint_no: 'LAP-202608-0002',
+    customer_id: 'CUST-ID-04',
+    customer_name: 'Warung Makan Bu Joko',
+    customer_no: 'CUST-2026-0004',
+    phone: '081234567804',
+    title: 'Tutup Box Meteran Air Pecah',
+    description: 'Tutup meteran di depan warung tertabrak gerobak dan pecah, mohon diganti agar terlindung dari hujan.',
+    category: 'meter_rusak',
+    status: 'Menunggu',
+    created_at: '2026-08-17 11:30:00'
+  }
+];
+
+export const initialSubscriptionRequests: SubscriptionRequest[] = [
+  {
+    id: 'REQ-001',
+    request_no: 'AJU-202608-0001',
+    customer_id: 'CUST-ID-01',
+    customer_name: 'Bpk. Budi Santoso',
+    customer_no: 'CUST-2026-0001',
+    phone: '081234567801',
+    current_tariff_id: 'TRF-01',
+    current_tariff_name: 'Rumah Tangga Standar',
+    requested_tariff_id: 'TRF-02',
+    requested_tariff_name: 'Niaga & UMKM Desa',
+    reason: 'Membuka usaha warung kelontong kecil di teras depan rumah sejak awal bulan.',
+    status: 'Menunggu',
+    created_at: '2026-08-18 10:00:00'
   }
 ];

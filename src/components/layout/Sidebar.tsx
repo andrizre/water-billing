@@ -15,7 +15,10 @@ import {
   FileSpreadsheet,
   User,
   Droplets,
-  LogOut
+  LogOut,
+  Megaphone,
+  MessageSquareWarning,
+  ArrowRightLeft
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
@@ -60,6 +63,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               <NavLink to="/admin/dashboard" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={handleNavClick}>
                 <span className="nav-item-icon"><LayoutDashboard size={18} /></span>
                 <span>Dashboard</span>
+              </NavLink>
+              <NavLink to="/admin/announcements" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={handleNavClick}>
+                <span className="nav-item-icon"><Megaphone size={18} /></span>
+                <span>Pengumuman</span>
+              </NavLink>
+
+              <div className="nav-section-title">Layanan Warga</div>
+              <NavLink to="/admin/complaints" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={handleNavClick}>
+                <span className="nav-item-icon"><MessageSquareWarning size={18} /></span>
+                <span>Keluhan Warga</span>
+              </NavLink>
+              <NavLink to="/admin/subscription-requests" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={handleNavClick}>
+                <span className="nav-item-icon"><ArrowRightLeft size={18} /></span>
+                <span>Pindah Golongan</span>
               </NavLink>
 
               <div className="nav-section-title">Kelola Air & Warga</div>
@@ -131,6 +148,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 <span className="nav-item-icon"><Users size={18} /></span>
                 <span>Daftar Pelanggan</span>
               </NavLink>
+
+              <div className="nav-section-title">Layanan Warga</div>
+              <NavLink to="/operator/complaints" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={handleNavClick}>
+                <span className="nav-item-icon"><MessageSquareWarning size={18} /></span>
+                <span>Keluhan Warga</span>
+              </NavLink>
+              <NavLink to="/operator/subscription-requests" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={handleNavClick}>
+                <span className="nav-item-icon"><ArrowRightLeft size={18} /></span>
+                <span>Pindah Golongan</span>
+              </NavLink>
+
+              <div className="nav-section-title">Laporan</div>
               <NavLink to="/operator/reports" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={handleNavClick}>
                 <span className="nav-item-icon"><BarChart3 size={18} /></span>
                 <span>Laporan Harian</span>
@@ -156,6 +185,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               <NavLink to="/customer/payments" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={handleNavClick}>
                 <span className="nav-item-icon"><CreditCard size={18} /></span>
                 <span>Riwayat Pembayaran</span>
+              </NavLink>
+
+              <div className="nav-section-title">Bantuan & Layanan</div>
+              <NavLink to="/customer/complaints" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={handleNavClick}>
+                <span className="nav-item-icon"><MessageSquareWarning size={18} /></span>
+                <span>Lapor Keluhan</span>
+              </NavLink>
+              <NavLink to="/customer/subscription-request" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={handleNavClick}>
+                <span className="nav-item-icon"><ArrowRightLeft size={18} /></span>
+                <span>Pindah Golongan</span>
               </NavLink>
               <NavLink to="/customer/profile" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={handleNavClick}>
                 <span className="nav-item-icon"><User size={18} /></span>

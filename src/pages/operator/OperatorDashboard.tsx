@@ -20,6 +20,7 @@ import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { PaymentReceiptModal } from '../../components/print/PaymentReceiptPrint';
+import { AnnouncementBanner } from '../../components/common/AnnouncementBanner';
 import { api } from '../../services/api';
 import { AdminDashboardData, Payment } from '../../types';
 import { formatRupiah, formatM3, formatDateTime, formatPeriod } from '../../utils/formatters';
@@ -125,6 +126,9 @@ export const OperatorDashboard: React.FC = () => {
           </div>
         }
       />
+
+      {/* Broadcast Announcements Banner */}
+      <AnnouncementBanner />
 
       {/* Real-time sync timestamp */}
       <div

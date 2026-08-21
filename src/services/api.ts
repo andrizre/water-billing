@@ -3,119 +3,99 @@ import { mockApiService } from './mockApiService';
 import { supabaseApiService } from './supabaseApiService';
 import { isSupabaseConfigured } from './supabaseClient';
 
+export type BackendType = 'supabase' | 'sqlite' | 'gas' | 'mock';
+
+const ACTIVE_BACKEND: BackendType = (import.meta.env.VITE_ACTIVE_BACKEND as BackendType) || 'supabase';
 const GAS_API_URL = import.meta.env.VITE_GAS_API_URL || '';
 const SQLITE_API_URL = import.meta.env.VITE_SQLITE_API_URL || 'http://localhost:3001';
-const FORCE_MOCK = import.meta.env.VITE_ENABLE_MOCK_MODE === 'true';
-
-let isSqliteAvailable: boolean | null = null;
-let activeBackendType: 'gas' | 'sqlite' | 'supabase' | 'mock' = 'mock';
 
 /**
- * Check if the local SQLite API server is running
+ * Returns the currently active backend type configured in .env
  */
-async function checkSqliteServer(): Promise<boolean> {
-  if (isSqliteAvailable !== null) return isSqliteAvailable;
-  try {
-    const res = await fetch(`${SQLITE_API_URL}/health`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      signal: AbortSignal.timeout(1200) // fast timeout
-    });
-    isSqliteAvailable = res.ok;
-  } catch {
-    isSqliteAvailable = false;
-  }
-  return isSqliteAvailable;
-}
-
-/**
- * Returns the currently active backend type
- */
-export function getActiveBackend(): 'gas' | 'sqlite' | 'supabase' | 'mock' {
-  return activeBackendType;
+export function getActiveBackend(): BackendType {
+  return ACTIVE_BACKEND;
 }
 
 /**
  * Universal Multi-Backend API Requester
- * Priority: GAS -> SQLite -> Supabase -> Mock (localStorage)
- * "Jika backend belum dimasukan, otomatis Supabase yang diload"
+ * Directed by VITE_ACTIVE_BACKEND in .env (Default: supabase).
+ * If the selected backend is unavailable, it throws an informative error instead of silent fallback.
  */
 async function callApi<T = any>(action: string, data: any = {}): Promise<T> {
-  // If Force Mock mode is explicitly true, use Mock immediately
-  if (FORCE_MOCK) {
-    activeBackendType = 'mock';
-    return handleMockCall<T>(action, data);
-  }
+  const backend = getActiveBackend();
 
-  // 1. Check Google Apps Script Web App
-  if (GAS_API_URL && GAS_API_URL.trim() !== '') {
-    const token = storage.getToken() || '';
-    const payload = { action, token, data };
+  switch (backend) {
+    case 'supabase': {
+      if (!isSupabaseConfigured()) {
+        throw new Error(
+          'Supabase dipilih sebagai backend aktif, tetapi VITE_SUPABASE_URL atau VITE_SUPABASE_ANON_KEY belum diisi di .env.'
+        );
+      }
+      return handleSupabaseCall<T>(action, data);
+    }
 
-    try {
+    case 'sqlite': {
+      const token = storage.getToken() || '';
+      try {
+        const response = await fetch(SQLITE_API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token ? `Bearer ${token}` : ''
+          },
+          body: JSON.stringify({ action: normalizeActionForServer(action), ...data }),
+          signal: AbortSignal.timeout(5000)
+        });
+
+        if (!response.ok) {
+          throw new Error(`Server SQLite merespons dengan status ${response.status}.`);
+        }
+
+        const result = await response.json();
+        if (result.success === false) {
+          throw new Error(result.error || 'Permintaan gagal pada server SQLite.');
+        }
+        return unwrapServerResponse(action, result) as T;
+      } catch (err: any) {
+        if (err.name === 'AbortError' || err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+          throw new Error(
+            `Server SQLite lokal (${SQLITE_API_URL}) tidak berjalan. Silakan jalankan 'npm run server' di terminal.`
+          );
+        }
+        throw err;
+      }
+    }
+
+    case 'gas': {
+      if (!GAS_API_URL || GAS_API_URL.trim() === '') {
+        throw new Error(
+          'Google Apps Script dipilih sebagai backend aktif, tetapi VITE_GAS_API_URL belum diisi di .env.'
+        );
+      }
+      const token = storage.getToken() || '';
+      const payload = { action, token, data };
+
       const response = await fetch(GAS_API_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'text/plain;charset=utf-8'
-        },
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(payload)
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success || result.status === 200 || result.status === 201) {
-          activeBackendType = 'gas';
-          return (result.data || result) as T;
-        }
-        throw new Error(result.message || result.error || 'Permintaan gagal diproses.');
+      if (!response.ok) {
+        throw new Error(`Server Google Apps Script merespons dengan status ${response.status}.`);
       }
-    } catch (error: any) {
-      console.warn(`GAS API call failed for action "${action}", falling back...`, error.message);
-    }
-  }
 
-  // 2. Check Local SQLite Server
-  const hasSqlite = await checkSqliteServer();
-  if (hasSqlite) {
-    try {
-      const token = storage.getToken() || '';
-      const response = await fetch(SQLITE_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : ''
-        },
-        body: JSON.stringify({ action: normalizeActionForServer(action), ...data })
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success !== false) {
-          activeBackendType = 'sqlite';
-          return unwrapServerResponse(action, result) as T;
-        }
-        throw new Error(result.error || 'Permintaan gagal pada server SQLite.');
+      const result = await response.json();
+      if (result.success || result.status === 200 || result.status === 201) {
+        return (result.data || result) as T;
       }
-    } catch (err: any) {
-      console.warn(`SQLite server call failed for "${action}", falling back:`, err.message);
-      isSqliteAvailable = false; // Disable until reload
+      throw new Error(result.message || result.error || 'Permintaan gagal diproses pada GAS.');
     }
-  }
 
-  // 3. Check Supabase (Default Cloud Database)
-  if (isSupabaseConfigured()) {
-    try {
-      const result = await handleSupabaseCall<T>(action, data);
-      activeBackendType = 'supabase';
-      return result;
-    } catch (err: any) {
-      console.warn(`Supabase call failed for "${action}", falling back to mock:`, err.message);
-    }
+    case 'mock':
+    default:
+      return handleMockCall<T>(action, data);
   }
-
-  // 4. Fallback to In-Browser Simulated Storage
-  activeBackendType = 'mock';
-  return handleMockCall<T>(action, data);
 }
 
 /**
@@ -216,6 +196,32 @@ async function handleSupabaseCall<T = any>(action: string, data: any): Promise<T
     case 'audit_list':
       return (await supabaseApiService.getAuditLogs()) as T;
 
+    // Announcements
+    case 'announcements_list':
+      return (await supabaseApiService.getAnnouncements(data)) as T;
+    case 'announcements_create':
+      return (await supabaseApiService.createAnnouncement(data)) as T;
+    case 'announcements_update':
+      return (await supabaseApiService.updateAnnouncement(data)) as T;
+    case 'announcements_delete':
+      return (await supabaseApiService.deleteAnnouncement(data.id)) as T;
+
+    // Complaints
+    case 'complaints_list':
+      return (await supabaseApiService.getComplaints(data)) as T;
+    case 'complaints_create':
+      return (await supabaseApiService.createComplaint(data)) as T;
+    case 'complaints_update_status':
+      return (await supabaseApiService.updateComplaintStatus(data.id, data.status, data.response_notes)) as T;
+
+    // Subscription Requests
+    case 'subscription_requests_list':
+      return (await supabaseApiService.getSubscriptionRequests(data)) as T;
+    case 'subscription_requests_create':
+      return (await supabaseApiService.createSubscriptionRequest(data)) as T;
+    case 'subscription_requests_update_status':
+      return (await supabaseApiService.updateSubscriptionRequestStatus(data.id, data.status, data.response_notes)) as T;
+
     default:
       throw new Error(`Aksi "${action}" tidak didukung pada Supabase.`);
   }
@@ -264,7 +270,17 @@ function normalizeActionForServer(action: string): string {
     'reports_usage': 'getUsageReport',
     'settings_get': 'getSettings',
     'settings_update': 'updateSettings',
-    'audit_list': 'getAuditLogs'
+    'audit_list': 'getAuditLogs',
+    'announcements_list': 'getAnnouncements',
+    'announcements_create': 'createAnnouncement',
+    'announcements_update': 'updateAnnouncement',
+    'announcements_delete': 'deleteAnnouncement',
+    'complaints_list': 'getComplaints',
+    'complaints_create': 'createComplaint',
+    'complaints_update_status': 'updateComplaintStatus',
+    'subscription_requests_list': 'getSubscriptionRequests',
+    'subscription_requests_create': 'createSubscriptionRequest',
+    'subscription_requests_update_status': 'updateSubscriptionRequestStatus'
   };
   return map[action] || action;
 }
@@ -282,6 +298,9 @@ function unwrapServerResponse(action: string, result: any): any {
   if (action === 'readings_list') return result.readings || [];
   if (action === 'users_list') return result.users || [];
   if (action === 'audit_list') return result.logs || [];
+  if (action === 'announcements_list') return result.announcements || [];
+  if (action === 'complaints_list') return result.complaints || [];
+  if (action === 'subscription_requests_list') return result.requests || [];
   return result;
 }
 
@@ -383,6 +402,32 @@ async function handleMockCall<T = any>(action: string, data: any): Promise<T> {
     case 'audit_list':
       return (await mockApiService.getAuditLogs()) as T;
 
+    // Announcements
+    case 'announcements_list':
+      return (await mockApiService.getAnnouncements(data)) as T;
+    case 'announcements_create':
+      return (await mockApiService.createAnnouncement(data)) as T;
+    case 'announcements_update':
+      return (await mockApiService.updateAnnouncement(data)) as T;
+    case 'announcements_delete':
+      return (await mockApiService.deleteAnnouncement(data.id)) as T;
+
+    // Complaints
+    case 'complaints_list':
+      return (await mockApiService.getComplaints(data)) as T;
+    case 'complaints_create':
+      return (await mockApiService.createComplaint(data)) as T;
+    case 'complaints_update_status':
+      return (await mockApiService.updateComplaintStatus(data.id, data.status, data.response_notes)) as T;
+
+    // Subscription Requests
+    case 'subscription_requests_list':
+      return (await mockApiService.getSubscriptionRequests(data)) as T;
+    case 'subscription_requests_create':
+      return (await mockApiService.createSubscriptionRequest(data)) as T;
+    case 'subscription_requests_update_status':
+      return (await mockApiService.updateSubscriptionRequestStatus(data.id, data.status, data.response_notes)) as T;
+
     default:
       throw new Error(`Aksi "${action}" tidak didukung.`);
   }
@@ -451,6 +496,24 @@ export const api = {
   getSettings: () => callApi('settings_get'),
   updateSettings: (settings: any) => callApi('settings_update', settings),
   getAuditLogs: (params?: any) => callApi('audit_list', params),
+
+  // Announcements
+  getAnnouncements: (params?: any) => callApi('announcements_list', params),
+  createAnnouncement: (data: any) => callApi('announcements_create', data),
+  updateAnnouncement: (data: any) => callApi('announcements_update', data),
+  deleteAnnouncement: (id: string) => callApi('announcements_delete', { id }),
+
+  // Complaints
+  getComplaints: (params?: any) => callApi('complaints_list', params),
+  createComplaint: (data: any) => callApi('complaints_create', data),
+  updateComplaintStatus: (id: string, status: string, response_notes?: string) =>
+    callApi('complaints_update_status', { id, status, response_notes }),
+
+  // Subscription Requests
+  getSubscriptionRequests: (params?: any) => callApi('subscription_requests_list', params),
+  createSubscriptionRequest: (data: any) => callApi('subscription_requests_create', data),
+  updateSubscriptionRequestStatus: (id: string, status: string, response_notes?: string) =>
+    callApi('subscription_requests_update_status', { id, status, response_notes }),
 
   // Reset demo
   resetMockData: () => mockApiService.resetToDefault(),

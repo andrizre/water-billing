@@ -25,6 +25,7 @@ import { UsageBarChart } from '../../components/charts/UsageBarChart';
 import { RevenueLineChart } from '../../components/charts/RevenueLineChart';
 import { BillInvoiceModal } from '../../components/print/BillInvoicePrint';
 import { PaymentReceiptModal } from '../../components/print/PaymentReceiptPrint';
+import { AnnouncementBanner } from '../../components/common/AnnouncementBanner';
 import { api } from '../../services/api';
 import { AdminDashboardData, Bill, Payment } from '../../types';
 import { formatRupiah, formatM3, formatDateTime, formatPeriod } from '../../utils/formatters';
@@ -137,6 +138,9 @@ export const AdminDashboard: React.FC = () => {
           </div>
         }
       />
+
+      {/* Broadcast Announcements Banner */}
+      <AnnouncementBanner />
 
       {/* Real-time sync timestamp */}
       <div

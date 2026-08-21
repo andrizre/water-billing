@@ -19,6 +19,9 @@ import { OperatorManagement } from './pages/admin/OperatorManagement';
 import { ReportsPage } from './pages/admin/ReportsPage';
 import { SettingsPage } from './pages/admin/SettingsPage';
 import { AuditLogsPage } from './pages/admin/AuditLogsPage';
+import { AnnouncementsPage } from './pages/admin/AnnouncementsPage';
+import { ComplaintsManagementPage } from './pages/admin/ComplaintsManagementPage';
+import { SubscriptionRequestsPage } from './pages/admin/SubscriptionRequestsPage';
 
 // Operator Pages
 import { OperatorDashboard } from './pages/operator/OperatorDashboard';
@@ -34,6 +37,8 @@ import { CustomerUsagePage } from './pages/customer/CustomerUsagePage';
 import { CustomerBillsPage } from './pages/customer/CustomerBillsPage';
 import { CustomerPaymentHistoryPage } from './pages/customer/CustomerPaymentHistoryPage';
 import { CustomerProfilePage } from './pages/customer/CustomerProfilePage';
+import { CustomerComplaintsPage } from './pages/customer/CustomerComplaintsPage';
+import { CustomerSubscriptionRequestPage } from './pages/customer/CustomerSubscriptionRequestPage';
 
 // Protected Route Guard
 interface ProtectedRouteProps {
@@ -110,6 +115,30 @@ export const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={['admin']}>
                 <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/announcements"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AnnouncementsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/complaints"
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'operator']}>
+                <ComplaintsManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/subscription-requests"
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'operator']}>
+                <SubscriptionRequestsPage />
               </ProtectedRoute>
             }
           />
@@ -228,6 +257,22 @@ export const App: React.FC = () => {
             }
           />
           <Route
+            path="/operator/complaints"
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'operator']}>
+                <ComplaintsManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/operator/subscription-requests"
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'operator']}>
+                <SubscriptionRequestsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/operator/reports"
             element={
               <ProtectedRoute allowedRoles={['admin', 'operator']}>
@@ -266,6 +311,22 @@ export const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={['admin', 'customer']}>
                 <CustomerPaymentHistoryPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/complaints"
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'customer']}>
+                <CustomerComplaintsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/subscription-request"
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'customer']}>
+                <CustomerSubscriptionRequestPage />
               </ProtectedRoute>
             }
           />
