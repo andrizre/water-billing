@@ -3,26 +3,57 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+
     <!-- Primary Meta Tags -->
     <title>Sandmosquito Water Billing - Sistem Pengelolaan Tagihan Air Desa</title>
     <meta name="title" content="Sandmosquito Water Billing - Sistem Pengelolaan Tagihan Air Desa" />
-    <meta name="description" content="Aplikasi pengelolaan tagihan air minum desa modern dengan tarif bertingkat, pencatatan meter bulanan, kasir pembayaran, dan portal cek tagihan mandiri warga." />
-    <meta name="keywords" content="tagihan air desa, billing pamsimas, bumdes air, water billing system, aplikasi air desa, pencatatan meter air" />
+    <meta name="description" content="Aplikasi pengelolaan tagihan air minum desa modern dengan tarif bertingkat, pencatatan meter bulanan, kasir pembayaran rekening air, keluhan warga, dan portal cek tagihan mandiri." />
+    <meta name="keywords" content="tagihan air desa, billing pamsimas, bumdes air, water billing system, aplikasi air desa, pencatatan meter air, kasir pembayaran air, supabase billing" />
     <meta name="author" content="BUMDes Tirta Sandmosquito" />
+    <meta name="robots" content="index, follow" />
     <meta name="theme-color" content="#0284c7" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Water Billing" />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://sandmosquito-water.pages.dev/" />
-    <meta property="og:title" content="Sandmosquito Water Billing - Tagihan Air Minum Desa" />
-    <meta property="og:description" content="Sistem informasi penagihan rekening air desa berbasis Google Apps Script dan React." />
+    <meta property="og:locale" content="id_ID" />
+    <meta property="og:site_name" content="Sandmosquito Water Billing" />
+    <meta property="og:title" content="Sandmosquito Water Billing - Tagihan Air Minum Desa Modern" />
+    <meta property="og:description" content="Sistem informasi penagihan rekening air desa mandiri dengan integrasi Supabase, SQLite, dan Google Sheets." />
+    <meta property="og:image" content="/favicon.svg" />
 
-    <!-- Google Fonts Preconnect -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Sandmosquito Water Billing - Tagihan Air Desa" />
+    <meta name="twitter:description" content="Aplikasi penagihan air desa dengan multi-database backend, pencatatan meter, dan kasir loket." />
+
+    <!-- Google Fonts Preconnect & Optimized Loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+    <noscript>
+      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    </noscript>
+
+    <!-- Structured Data JSON-LD for SEO -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Sandmosquito Water Billing",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web, Mobile Browser",
+      "description": "Sistem informasi pengelolaan tagihan air minum desa modern dengan tarif bertingkat dan multi-backend database.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "IDR"
+      }
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>

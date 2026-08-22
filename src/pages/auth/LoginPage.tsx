@@ -129,11 +129,20 @@ export const LoginPage: React.FC = () => {
               required
             />
 
+            <div style={{ textAlign: 'right', marginTop: -8, marginBottom: 12 }}>
+              <Link
+                to="/forgot-password"
+                style={{ fontSize: 12, color: 'var(--slate-500)', fontWeight: 600 }}
+              >
+                Lupa kata sandi?
+              </Link>
+            </div>
+
             <Button
               type="submit"
               variant="primary"
               loading={loading}
-              style={{ width: '100%', marginTop: 8, padding: '12px' }}
+              style={{ width: '100%', marginTop: 4, padding: '12px' }}
               icon={<ArrowRight size={18} />}
             >
               Masuk ke Aplikasi

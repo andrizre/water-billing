@@ -1,0 +1,88 @@
+{
+  "description": "Struktur data lengkap LocalStorage (sandmosquito_mock_database_v1) untuk mode simulasi offline browser.",
+  "users": [
+    {
+      "id": "USR-0001",
+      "username": "admin",
+      "full_name": "Administrator Utama",
+      "role": "admin",
+      "email": "admin@sandmosquito.desa.id",
+      "phone": "081234567890",
+      "is_active": true,
+      "created_at": "2026-01-01 08:00:00"
+    },
+    {
+      "id": "USR-0002",
+      "username": "operator",
+      "full_name": "Petugas Lapangan",
+      "role": "operator",
+      "email": "operator@sandmosquito.desa.id",
+      "phone": "081298765432",
+      "is_active": true,
+      "created_at": "2026-01-01 08:00:00"
+    },
+    {
+      "id": "USR-CUST-01",
+      "username": "cust-2026-0001",
+      "full_name": "Bpk. Budi Santoso",
+      "role": "customer",
+      "customer_id": "CUST-ID-01",
+      "phone": "081234567801",
+      "is_active": true,
+      "created_at": "2026-01-10 09:00:00"
+    }
+  ],
+  "tariffs": [
+    {
+      "id": "TRF-01",
+      "code": "R1-DESA",
+      "name": "Rumah Tangga Standar",
+      "category": "Rumah Tangga",
+      "base_fee": 5000,
+      "tier1_max": 10,
+      "tier1_rate": 2000,
+      "tier2_max": 20,
+      "tier2_rate": 3000,
+      "tier3_rate": 5000,
+      "late_fee": 5000,
+      "is_active": true
+    },
+    {
+      "id": "TRF-02",
+      "code": "N1-DESA",
+      "name": "Niaga & UMKM Desa",
+      "category": "Niaga",
+      "base_fee": 15000,
+      "tier1_max": 10,
+      "tier1_rate": 3500,
+      "tier2_max": 20,
+      "tier2_rate": 5000,
+      "tier3_rate": 7500,
+      "late_fee": 10000,
+      "is_active": true
+    }
+  ],
+  "announcements": [
+    {
+      "id": "ANN-001",
+      "title": "Jadwal Pemeliharaan Pipa Induk Dusun Krajan",
+      "content": "Akan dilakukan perawatan pipa utama pada hari Sabtu, 23 Agustus 2026 pukul 09.00 - 13.00 WIB.",
+      "target_audience": "all",
+      "priority": "urgent",
+      "is_active": true,
+      "created_by": "Administrator Utama",
+      "created_at": "2026-08-18 08:00:00"
+    }
+  ],
+  "registration_tokens": [
+    {
+      "id": "TOK-001",
+      "token": "DESA-AIR-2026",
+      "recipient_name": "Warga Baru Dusun Krajan",
+      "target_role": "customer",
+      "default_tariff_id": "TRF-01",
+      "is_used": false,
+      "notes": "Token pendaftaran umum warga"
+    }
+  ]
+}

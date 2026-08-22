@@ -1,0 +1,12 @@
+# Robots.txt for Sandmosquito Water Billing
+User-agent: *
+Allow: /
+Allow: /cek-tagihan
+Allow: /login
+Allow: /register
+Allow: /forgot-password
+Disallow: /admin/
+Disallow: /operator/
+Disallow: /customer/
+
+Sitemap: https://sandmosquito-water.pages.dev/sitemap.xml
