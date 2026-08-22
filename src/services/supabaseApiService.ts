@@ -1163,4 +1163,152 @@ export const supabaseApiService = {
       .eq('id', id);
     if (error) throw new Error(error.message);
   },
+
+  // ==================== 14. REGISTRATION TOKENS & REGISTER ====================
+  async getRegistrationTokens(): Promise<any[]> {
+    const sb = supabase();
+    const { data, error } = await sb
+      .from('registration_tokens')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return data || [];
+  },
+
+  async createRegistrationToken(data: any): Promise<any> {
+    const sb = supabase();
+    const id = `TOK-${Date.now().toString().slice(-6)}`;
+    const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const token = data.token?.trim().toUpperCase() || `DESA-${randomSuffix}`;
+
+    const newTok: any = {
+      id,
+      token,
+      recipient_name: data.recipient_name || '',
+      target_role: data.target_role || 'customer',
+      default_tariff_id: data.default_tariff_id || 'TRF-01',
+      is_used: false,
+      notes: data.notes || '',
+    };
+
+    const { data: inserted, error } = await sb.from('registration_tokens').insert(newTok).select().single();
+    if (error) throw new Error(error.message);
+    return inserted;
+  },
+
+  async deleteRegistrationToken(id: string): Promise<void> {
+    const { error } = await supabase().from('registration_tokens').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+  },
+
+  async verifyRegistrationToken(tokenStr: string): Promise<any> {
+    const sb = supabase();
+    const cleanToken = tokenStr.trim().toUpperCase();
+
+    const { data: tok, error } = await sb
+      .from('registration_tokens')
+      .select('*')
+      .eq('token', cleanToken)
+      .maybeSingle();
+
+    if (!tok || error) {
+      throw new Error('Token pendaftaran tidak valid atau tidak ditemukan.');
+    }
+
+    if (tok.is_used) {
+      throw new Error('Token pendaftaran ini sudah pernah digunakan.');
+    }
+
+    return { valid: true, token: tok };
+  },
+
+  async registerWithToken(data: any): Promise<any> {
+    const sb = supabase();
+    const { tokenStr, fullName, nik, phone, address, rtRw, username, password } = data;
+
+    // 1. Verify token
+    const { token: tok } = await this.verifyRegistrationToken(tokenStr);
+
+    // 2. Check if username already exists
+    const cleanUser = username.trim().toLowerCase();
+    const { data: existingUser } = await sb
+      .from('users')
+      .select('id')
+      .eq('username', cleanUser)
+      .maybeSingle();
+
+    if (existingUser) {
+      throw new Error(`Username "${username}" sudah digunakan. Silakan pilih username lain.`);
+    }
+
+    // 3. Create Customer
+    const customerId = `CUST-ID-${Date.now().toString().slice(-4)}`;
+    const customerNo = `CUST-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    const { data: tariffs } = await sb.from('tariffs').select('*');
+    const tariff = (tariffs || []).find((t: any) => t.id === tok.default_tariff_id) || (tariffs || [])[0];
+
+    // Create meter for customer
+    const meterId = `MTR-ID-${Date.now().toString().slice(-4)}`;
+    const meterNo = `MTR-${Math.floor(1000 + Math.random() * 9000)}`;
+    await sb.from('meters').insert({
+      id: meterId,
+      meter_no: meterNo,
+      customer_id: customerId,
+      customer_name: fullName,
+      customer_no: customerNo,
+      installation_date: new Date().toISOString().substring(0, 10),
+      brand: 'Standard SNI',
+      initial_reading: 0,
+      current_reading: 0,
+      status: 'Aktif',
+    });
+
+    const newCust: any = {
+      id: customerId,
+      customer_no: customerNo,
+      full_name: fullName,
+      nik: nik || '',
+      phone: phone || '',
+      address: address || '',
+      rt_rw: rtRw || '',
+      meter_id: meterId,
+      meter_no: meterNo,
+      current_reading: 0,
+      tariff_id: tariff?.id || 'TRF-01',
+      tariff_name: tariff?.name || 'Rumah Tangga Standar',
+      status: 'Aktif',
+    };
+
+    await sb.from('customers').insert(newCust);
+
+    // 4. Create User login
+    const userId = `USR-${Math.floor(1000 + Math.random() * 9000)}`;
+    await sb.from('users').insert({
+      id: userId,
+      username: cleanUser,
+      full_name: fullName,
+      role: tok.target_role || 'customer',
+      customer_id: customerId,
+      phone: phone || '',
+      is_active: true,
+    });
+
+    // 5. Mark Token as Used
+    await sb
+      .from('registration_tokens')
+      .update({
+        is_used: true,
+        used_by_username: cleanUser,
+        used_at: new Date().toISOString(),
+      })
+      .eq('id', tok.id);
+
+    return {
+      success: true,
+      customer_no: customerNo,
+      username: cleanUser,
+      message: 'Registrasi berhasil! Silakan masuk dengan akun baru Anda.',
+    };
+  },
 };

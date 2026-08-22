@@ -317,6 +317,10 @@ button {
 
   .menu-toggle-btn {
     display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
   }
 
   .top-header {
@@ -325,6 +329,97 @@ button {
 
   .page-content {
     padding: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --header-height: 58px;
+  }
+
+  .top-header {
+    padding: 0 12px;
+    gap: 8px;
+  }
+
+  .header-left {
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .header-title-badge {
+    overflow: hidden;
+  }
+
+  .header-title-badge a span,
+  .header-title-badge div span {
+    font-size: 11px;
+  }
+
+  .header-right {
+    gap: 6px;
+  }
+
+  .demo-role-switcher {
+    padding: 2px;
+    gap: 2px;
+  }
+
+  .demo-role-switcher span {
+    display: none;
+  }
+
+  .demo-role-btn {
+    padding: 4px 6px;
+    font-size: 11px;
+  }
+
+  .page-content {
+    padding: 12px;
+  }
+
+  .stat-card-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .card-header {
+    padding: 14px 16px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .card-body {
+    padding: 16px;
+  }
+
+  .modal-content {
+    max-width: 95vw !important;
+    margin: 10px;
+  }
+
+  .modal-header, .modal-body, .modal-footer {
+    padding: 14px 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .top-header {
+    padding: 0 8px;
+  }
+
+  .header-title-badge a span {
+    display: none;
+  }
+
+  .demo-role-btn {
+    padding: 4px;
+    font-size: 10px;
+  }
+
+  .page-content {
+    padding: 10px;
   }
 }
 

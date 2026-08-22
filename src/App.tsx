@@ -6,6 +6,7 @@ import { LoadingSpinner } from './components/common/LoadingSpinner';
 
 // Pages
 import { LoginPage } from './pages/auth/LoginPage';
+import { RegisterPage } from './pages/auth/RegisterPage';
 import { PublicBillCheckPage } from './pages/public/PublicBillCheckPage';
 
 // Admin Pages
@@ -22,6 +23,7 @@ import { AuditLogsPage } from './pages/admin/AuditLogsPage';
 import { AnnouncementsPage } from './pages/admin/AnnouncementsPage';
 import { ComplaintsManagementPage } from './pages/admin/ComplaintsManagementPage';
 import { SubscriptionRequestsPage } from './pages/admin/SubscriptionRequestsPage';
+import { TokensManagementPage } from './pages/admin/TokensManagementPage';
 
 // Operator Pages
 import { OperatorDashboard } from './pages/operator/OperatorDashboard';
@@ -96,6 +98,7 @@ export const App: React.FC = () => {
       <Routes>
         {/* Public Routes */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
         <Route path="/cek-tagihan" element={<PublicBillCheckPage />} />
 
         {/* Protected App Routes inside MainLayout */}
@@ -179,6 +182,14 @@ export const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={['admin']}>
                 <PaymentManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/tokens"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <TokensManagementPage />
               </ProtectedRoute>
             }
           />

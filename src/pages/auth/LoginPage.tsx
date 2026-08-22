@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Droplets, Lock, User, Shield, Search, ArrowRight } from 'lucide-react';
+import { Droplets, Lock, User, Shield, Search, ArrowRight, Key } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useSettings } from '../../context/SettingsContext';
@@ -138,6 +138,24 @@ export const LoginPage: React.FC = () => {
             >
               Masuk ke Aplikasi
             </Button>
+
+            {/* Link Daftar Pelanggan dengan Token */}
+            <div style={{ marginTop: 16, textAlign: 'center' }}>
+              <Link
+                to="/register"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: 'var(--primary-600)'
+                }}
+              >
+                <Key size={14} />
+                <span>Pelanggan Baru? Daftar dengan Token Undangan</span>
+              </Link>
+            </div>
           </form>
 
           {/* Quick Demo Credentials */}

@@ -1092,6 +1092,149 @@ export const mockApiService = {
     }
   },
 
+  // 14. REGISTRATION TOKENS & REGISTER
+  async getRegistrationTokens(): Promise<RegistrationToken[]> {
+    const db = getDatabase();
+    if (!db.registrationTokens) {
+      db.registrationTokens = [
+        {
+          id: 'TOK-001',
+          token: 'DESA-AIR-2026',
+          recipient_name: 'Warga Baru Dusun Krajan',
+          target_role: 'customer',
+          default_tariff_id: 'TRF-01',
+          is_used: false,
+          notes: 'Token pendaftaran umum warga',
+          created_at: nowTimeString()
+        }
+      ];
+      saveDatabase(db);
+    }
+    return db.registrationTokens;
+  },
+
+  async createRegistrationToken(data: any): Promise<RegistrationToken> {
+    const db = getDatabase();
+    if (!db.registrationTokens) db.registrationTokens = [];
+    const id = `TOK-${Date.now().toString().slice(-6)}`;
+    const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const token = data.token?.trim().toUpperCase() || `DESA-${randomSuffix}`;
+
+    const newTok: RegistrationToken = {
+      id,
+      token,
+      recipient_name: data.recipient_name || '',
+      target_role: data.target_role || 'customer',
+      default_tariff_id: data.default_tariff_id || 'TRF-01',
+      is_used: false,
+      notes: data.notes || '',
+      created_at: nowTimeString()
+    };
+    db.registrationTokens.unshift(newTok);
+    saveDatabase(db);
+    return newTok;
+  },
+
+  async deleteRegistrationToken(id: string): Promise<void> {
+    const db = getDatabase();
+    if (db.registrationTokens) {
+      db.registrationTokens = db.registrationTokens.filter((t) => t.id !== id);
+      saveDatabase(db);
+    }
+  },
+
+  async verifyRegistrationToken(tokenStr: string): Promise<any> {
+    const tokens = await this.getRegistrationTokens();
+    const clean = tokenStr.trim().toUpperCase();
+    const tok = tokens.find((t) => t.token === clean);
+
+    if (!tok) {
+      throw new Error('Token pendaftaran tidak valid atau tidak ditemukan.');
+    }
+    if (tok.is_used) {
+      throw new Error('Token pendaftaran ini sudah pernah digunakan.');
+    }
+    return { valid: true, token: tok };
+  },
+
+  async registerWithToken(data: any): Promise<any> {
+    const db = getDatabase();
+    const { tokenStr, fullName, nik, phone, address, rtRw, username } = data;
+
+    // 1. Verify token
+    const { token: tok } = await this.verifyRegistrationToken(tokenStr);
+
+    // 2. Check username
+    const cleanUser = username.trim().toLowerCase();
+    if (db.users.some((u) => u.username.toLowerCase() === cleanUser)) {
+      throw new Error(`Username "${username}" sudah digunakan.`);
+    }
+
+    // 3. Create customer
+    const customerId = `CUST-ID-${Date.now().toString().slice(-4)}`;
+    const customerNo = `CUST-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const tariff = db.tariffs.find((t) => t.id === tok.default_tariff_id) || db.tariffs[0];
+
+    const meterId = `MTR-ID-${Date.now().toString().slice(-4)}`;
+    const meterNo = `MTR-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    db.meters.push({
+      id: meterId,
+      meter_no: meterNo,
+      customer_id: customerId,
+      customer_name: fullName,
+      customer_no: customerNo,
+      installation_date: new Date().toISOString().substring(0, 10),
+      brand: 'Standard SNI',
+      initial_reading: 0,
+      current_reading: 0,
+      status: 'Aktif',
+      created_at: nowTimeString()
+    });
+
+    db.customers.push({
+      id: customerId,
+      customer_no: customerNo,
+      full_name: fullName,
+      nik: nik || '',
+      phone: phone || '',
+      address: address || '',
+      rt_rw: rtRw || '',
+      meter_id: meterId,
+      meter_no: meterNo,
+      current_reading: 0,
+      tariff_id: tariff.id,
+      tariff_name: tariff.name,
+      status: 'Aktif',
+      created_at: nowTimeString()
+    });
+
+    db.users.push({
+      id: `USR-${Math.floor(1000 + Math.random() * 9000)}`,
+      username: cleanUser,
+      full_name: fullName,
+      role: tok.target_role || 'customer',
+      customer_id: customerId,
+      phone: phone || '',
+      is_active: true,
+      created_at: nowTimeString()
+    });
+
+    // Mark token used
+    tok.is_used = true;
+    tok.used_by_username = cleanUser;
+    tok.used_at = nowTimeString();
+
+    saveDatabase(db);
+
+    return {
+      success: true,
+      customer_no: customerNo,
+      username: cleanUser,
+      message: 'Registrasi berhasil! Silakan login.'
+    };
+  },
+
   async resetToDefault(): Promise<void> {
     localStorage.removeItem('sandmosquito_mock_database_v1');
     getDatabase(); // reinitialize

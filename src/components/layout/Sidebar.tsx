@@ -18,7 +18,8 @@ import {
   LogOut,
   Megaphone,
   MessageSquareWarning,
-  ArrowRightLeft
+  ArrowRightLeft,
+  Key
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
@@ -108,6 +109,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               </NavLink>
 
               <div className="nav-section-title">Administrasi</div>
+              <NavLink to="/admin/tokens" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={handleNavClick}>
+                <span className="nav-item-icon"><Key size={18} /></span>
+                <span>Token Registrasi</span>
+              </NavLink>
               <NavLink to="/admin/users" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={handleNavClick}>
                 <span className="nav-item-icon"><UserCheck size={18} /></span>
                 <span>Kelola Operator</span>

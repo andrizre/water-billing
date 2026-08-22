@@ -222,6 +222,18 @@ async function handleSupabaseCall<T = any>(action: string, data: any): Promise<T
     case 'subscription_requests_update_status':
       return (await supabaseApiService.updateSubscriptionRequestStatus(data.id, data.status, data.response_notes)) as T;
 
+    // Registration Tokens & Register
+    case 'tokens_list':
+      return (await supabaseApiService.getRegistrationTokens()) as T;
+    case 'tokens_create':
+      return (await supabaseApiService.createRegistrationToken(data)) as T;
+    case 'tokens_delete':
+      return (await supabaseApiService.deleteRegistrationToken(data.id)) as T;
+    case 'tokens_verify':
+      return (await supabaseApiService.verifyRegistrationToken(data.token)) as T;
+    case 'auth_register':
+      return (await supabaseApiService.registerWithToken(data)) as T;
+
     default:
       throw new Error(`Aksi "${action}" tidak didukung pada Supabase.`);
   }
@@ -280,7 +292,12 @@ function normalizeActionForServer(action: string): string {
     'complaints_update_status': 'updateComplaintStatus',
     'subscription_requests_list': 'getSubscriptionRequests',
     'subscription_requests_create': 'createSubscriptionRequest',
-    'subscription_requests_update_status': 'updateSubscriptionRequestStatus'
+    'subscription_requests_update_status': 'updateSubscriptionRequestStatus',
+    'tokens_list': 'getRegistrationTokens',
+    'tokens_create': 'createRegistrationToken',
+    'tokens_delete': 'deleteRegistrationToken',
+    'tokens_verify': 'verifyRegistrationToken',
+    'auth_register': 'registerWithToken'
   };
   return map[action] || action;
 }
@@ -428,6 +445,18 @@ async function handleMockCall<T = any>(action: string, data: any): Promise<T> {
     case 'subscription_requests_update_status':
       return (await mockApiService.updateSubscriptionRequestStatus(data.id, data.status, data.response_notes)) as T;
 
+    // Registration Tokens & Register
+    case 'tokens_list':
+      return (await mockApiService.getRegistrationTokens()) as T;
+    case 'tokens_create':
+      return (await mockApiService.createRegistrationToken(data)) as T;
+    case 'tokens_delete':
+      return (await mockApiService.deleteRegistrationToken(data.id)) as T;
+    case 'tokens_verify':
+      return (await mockApiService.verifyRegistrationToken(data.token)) as T;
+    case 'auth_register':
+      return (await mockApiService.registerWithToken(data)) as T;
+
     default:
       throw new Error(`Aksi "${action}" tidak didukung.`);
   }
@@ -514,6 +543,13 @@ export const api = {
   createSubscriptionRequest: (data: any) => callApi('subscription_requests_create', data),
   updateSubscriptionRequestStatus: (id: string, status: string, response_notes?: string) =>
     callApi('subscription_requests_update_status', { id, status, response_notes }),
+
+  // Registration Tokens & Register
+  getRegistrationTokens: () => callApi('tokens_list'),
+  createRegistrationToken: (data: any) => callApi('tokens_create', data),
+  deleteRegistrationToken: (id: string) => callApi('tokens_delete', { id }),
+  verifyRegistrationToken: (token: string) => callApi('tokens_verify', { token }),
+  registerWithToken: (data: any) => callApi('auth_register', data),
 
   // Reset demo
   resetMockData: () => mockApiService.resetToDefault(),

@@ -225,6 +225,21 @@ export interface SubscriptionRequest {
   updated_at?: string;
 }
 
+// 4. Token Pendaftaran (Undangan Admin)
+export interface RegistrationToken {
+  id: string;
+  token: string;
+  recipient_name?: string;
+  target_role: 'customer' | 'operator';
+  default_tariff_id?: string;
+  is_used: boolean;
+  used_by_username?: string;
+  used_at?: string;
+  created_by?: string;
+  notes?: string;
+  created_at?: string;
+}
+
 export interface MonthlyTrend {
   month: number;
   year: number;
