@@ -10,7 +10,8 @@ import {
   AuditLog,
   Announcement,
   Complaint,
-  SubscriptionRequest
+  SubscriptionRequest,
+  RegistrationToken
 } from '../types';
 
 export const initialTariffs: Tariff[] = [
@@ -685,5 +686,28 @@ export const initialSubscriptionRequests: SubscriptionRequest[] = [
     reason: 'Membuka usaha warung kelontong kecil di teras depan rumah sejak awal bulan.',
     status: 'Menunggu',
     created_at: '2026-08-18 10:00:00'
+  }
+];
+
+export const initialRegistrationTokens: RegistrationToken[] = [
+  {
+    id: 'TOK-001',
+    token: 'DESA-AIR-2026',
+    recipient_name: 'Warga Baru Dusun Krajan',
+    target_role: 'customer',
+    default_tariff_id: 'TRF-01',
+    is_used: false,
+    notes: 'Token pendaftaran umum warga',
+    created_at: '2026-08-18 08:00:00'
+  },
+  {
+    id: 'TOK-002',
+    token: 'WARGA-MANDIRI-88',
+    recipient_name: 'Bpk. Ahmad Dahlan',
+    target_role: 'customer',
+    default_tariff_id: 'TRF-01',
+    is_used: false,
+    notes: 'Token pendaftaran sambungan baru',
+    created_at: '2026-08-18 08:00:00'
   }
 ];

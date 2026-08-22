@@ -10,7 +10,8 @@ import {
   initialAuditLogs,
   initialAnnouncements,
   initialComplaints,
-  initialSubscriptionRequests
+  initialSubscriptionRequests,
+  initialRegistrationTokens
 } from './mockData';
 import { storage } from './storage';
 import { calculateTieredBillBreakdown } from '../utils/calculator';
@@ -28,7 +29,8 @@ import {
   CustomerDashboardData,
   Announcement,
   Complaint,
-  SubscriptionRequest
+  SubscriptionRequest,
+  RegistrationToken
 } from '../types';
 
 interface MockDatabase {
@@ -44,6 +46,7 @@ interface MockDatabase {
   announcements: Announcement[];
   complaints: Complaint[];
   subscriptionRequests: SubscriptionRequest[];
+  registrationTokens: RegistrationToken[];
 }
 
 function getDatabase(): MockDatabase {
@@ -61,13 +64,15 @@ function getDatabase(): MockDatabase {
       auditLogs: [...initialAuditLogs],
       announcements: [...initialAnnouncements],
       complaints: [...initialComplaints],
-      subscriptionRequests: [...initialSubscriptionRequests]
+      subscriptionRequests: [...initialSubscriptionRequests],
+      registrationTokens: [...initialRegistrationTokens]
     };
     storage.setMockDb(db);
   }
   if (!db.announcements) db.announcements = [...initialAnnouncements];
   if (!db.complaints) db.complaints = [...initialComplaints];
   if (!db.subscriptionRequests) db.subscriptionRequests = [...initialSubscriptionRequests];
+  if (!db.registrationTokens) db.registrationTokens = [...initialRegistrationTokens];
   return db;
 }
 
