@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Droplets, ArrowLeft, CheckCircle2, AlertCircle, FileText } from 'lucide-react';
 import { api } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useSettings } from '../../context/SettingsContext';
 import { Button } from '../../components/common/Button';
@@ -21,8 +22,18 @@ export const PublicBillCheckPage: React.FC = () => {
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
   const [invoiceModalOpen, setInvoiceModalOpen] = useState<boolean>(false);
 
+  const { isAuthenticated, role } = useAuth();
   const { error: toastError } = useToast();
   const { settings } = useSettings();
+
+  const getBackDestination = () => {
+    if (!isAuthenticated) return { path: '/login', label: 'Kembali ke Halaman Login' };
+    if (role === 'customer') return { path: '/customer/dashboard', label: 'Kembali ke Dashboard Warga' };
+    if (role === 'operator') return { path: '/operator/dashboard', label: 'Kembali ke Dashboard Operator' };
+    return { path: '/admin/dashboard', label: 'Kembali ke Dashboard Admin' };
+  };
+
+  const backDest = getBackDestination();
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,7 +65,7 @@ export const PublicBillCheckPage: React.FC = () => {
         {/* Top Bar Navigation */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
           <Link
-            to="/login"
+            to={backDest.path}
             className="btn-secondary"
             style={{
               display: 'inline-flex',
@@ -68,7 +79,7 @@ export const PublicBillCheckPage: React.FC = () => {
             }}
           >
             <ArrowLeft size={16} />
-            <span>Kembali ke Halaman Login</span>
+            <span>{backDest.label}</span>
           </Link>
           <div style={{ fontSize: 13, color: 'var(--slate-500)', fontWeight: 600 }}>
             {settings.village_name || 'Desa Sandmosquito'}

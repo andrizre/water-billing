@@ -1134,6 +1134,83 @@
   color: #38bdf8 !important;
 }
 
+/* Toast Notifications Dark Theme */
+[data-theme="dark"] .toast-item {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+  border: 1px solid #334155 !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+}
+
+[data-theme="dark"] .toast-success {
+  border-left: 4px solid #10b981 !important;
+  color: #f1f5f9 !important;
+}
+
+[data-theme="dark"] .toast-error {
+  border-left: 4px solid #ef4444 !important;
+  color: #f1f5f9 !important;
+}
+
+[data-theme="dark"] .toast-warning {
+  border-left: 4px solid #f59e0b !important;
+  color: #f1f5f9 !important;
+}
+
+[data-theme="dark"] .toast-info {
+  border-left: 4px solid #38bdf8 !important;
+  color: #f1f5f9 !important;
+}
+
+[data-theme="dark"] .toast-close-btn {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .toast-close-btn:hover {
+  color: #ffffff !important;
+}
+
+/* Pagination Dark Theme */
+[data-theme="dark"] .pagination-container {
+  background-color: #1e293b !important;
+  border-top-color: #334155 !important;
+}
+
+[data-theme="dark"] .pagination-info {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .pagination-info strong {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .pagination-btn {
+  background-color: #0f172a !important;
+  color: #f1f5f9 !important;
+  border-color: #334155 !important;
+}
+
+[data-theme="dark"] .pagination-btn:hover:not(:disabled) {
+  background-color: #334155 !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .pagination-btn.active {
+  background-color: #0284c7 !important;
+  color: #ffffff !important;
+  border-color: #0284c7 !important;
+}
+
+[data-theme="dark"] .pagination-btn:disabled {
+  background-color: #1e293b !important;
+  color: #475569 !important;
+  border-color: #334155 !important;
+}
+
+[data-theme="dark"] .pagination-ellipsis {
+  color: #64748b !important;
+}
+
 /* Universal Inline Color Cleanups inside Dark Theme */
 [data-theme="dark"] div[style*="background-color: #ffffff"],
 [data-theme="dark"] div[style*="backgroundColor: #ffffff"],
