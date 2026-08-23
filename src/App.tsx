@@ -32,6 +32,7 @@ const RecordReadingPage = lazy(() => import('./pages/operator/RecordReadingPage'
 const BillGeneratePage = lazy(() => import('./pages/operator/BillGeneratePage').then(m => ({ default: m.BillGeneratePage })));
 const PaymentEntryPage = lazy(() => import('./pages/operator/PaymentEntryPage').then(m => ({ default: m.PaymentEntryPage })));
 const CustomerList = lazy(() => import('./pages/operator/CustomerList').then(m => ({ default: m.CustomerList })));
+const OperatorTokensPage = lazy(() => import('./pages/operator/OperatorTokensPage').then(m => ({ default: m.OperatorTokensPage })));
 const OperatorReportsPage = lazy(() => import('./pages/operator/OperatorReportsPage').then(m => ({ default: m.OperatorReportsPage })));
 
 // Lazy Loaded Customer Pages
@@ -272,6 +273,14 @@ export const App: React.FC = () => {
               element={
                 <ProtectedRoute allowedRoles={['admin', 'operator']}>
                   <CustomerList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/operator/tokens"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'operator']}>
+                  <OperatorTokensPage />
                 </ProtectedRoute>
               }
             />

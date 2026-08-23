@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { KeyRound, ShieldAlert, CheckCircle2, ArrowRight, Eye, EyeOff, User, HelpCircle, Lock, MessageSquare } from 'lucide-react';
+import { KeyRound, ShieldCheck, CheckCircle2, ArrowRight, Eye, EyeOff, User, HelpCircle, Lock, MessageSquare, ShieldAlert } from 'lucide-react';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
@@ -13,30 +13,58 @@ export const ForgotPasswordPage: React.FC = () => {
   const { settings } = useSettings();
   const { success, error: toastError } = useToast();
 
-  // Step state: 1 = Identify User, 2 = Security Questions, 3 = Reset Password / Reveal
+  // Step state: 1 = Input Admin Reset Token, 2 = Verify Identity, 3 = Set New Password
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [loading, setLoading] = useState(false);
 
-  // Form states
-  const [identifier, setIdentifier] = useState('');
-  const [foundUser, setFoundUser] = useState<any>(null);
-  const [foundCustomer, setFoundCustomer] = useState<any>(null);
+  // Step 1: Admin Token
+  const [tokenStr, setTokenStr] = useState('');
+  const [verifiedToken, setVerifiedToken] = useState<any>(null);
 
-  // Security Questions
+  // Step 2: Account identification & security questions
+  const [identifier, setIdentifier] = useState('');
+  const [foundCustomer, setFoundCustomer] = useState<any>(null);
+  const [foundUser, setFoundUser] = useState<any>(null);
   const [nikLast4, setNikLast4] = useState('');
   const [rtRwAnswer, setRtRwAnswer] = useState('');
-  const [phoneAnswer, setPhoneAnswer] = useState('');
 
-  // Password Reset / Reveal
+  // Step 3: Password Reset
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  // 1. Identify User
-  const handleIdentify = async (e: React.FormEvent) => {
+  const adminPhone = settings.contact_phone || '081234567890';
+  const cleanAdminPhone = adminPhone.replace(/[^0-9]/g, '').replace(/^0/, '62');
+  const waRequestUrl = `https://wa.me/${cleanAdminPhone}?text=${encodeURIComponent(
+    `Halo Admin BUMDes ${settings.village_name || 'Desa Sandmosquito'}, saya lupa kata sandi akun air saya dan ingin meminta kode token reset password. Terima kasih.`
+  )}`;
+
+  // 1. Verify Admin Reset Token First
+  const handleVerifyToken = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!identifier.trim()) {
-      toastError('Silakan masukkan username, nomor pelanggan, atau nomor HP.');
+    if (!tokenStr.trim()) {
+      toastError('Silakan masukkan token reset password dari admin.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await api.verifyRegistrationToken(tokenStr);
+      setVerifiedToken(res.token);
+      setStep(2);
+      success('Token konfirmasi admin valid! Silakan lengkapi data verifikasi akun Anda.');
+    } catch (err: any) {
+      toastError(err.message || 'Token tidak valid atau belum dibuat oleh admin.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 2. Identify Account & Verify Security Questions
+  const handleVerifyIdentity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!identifier.trim() || !nikLast4.trim() || !rtRwAnswer.trim()) {
+      toastError('Semua kolom data verifikasi wajib diisi.');
       return;
     }
 
@@ -44,7 +72,7 @@ export const ForgotPasswordPage: React.FC = () => {
       setLoading(true);
       const clean = identifier.trim().toLowerCase();
 
-      // Search customer or user
+      // Search in customers
       const customers = await api.getCustomers({ search: clean });
       const targetCustomer = customers.find(
         (c: any) =>
@@ -53,85 +81,41 @@ export const ForgotPasswordPage: React.FC = () => {
           c.full_name.toLowerCase().includes(clean)
       );
 
-      if (targetCustomer) {
+      if (!targetCustomer) {
+        toastError('Akun pelanggan dengan identitas tersebut tidak ditemukan.');
+        return;
+      }
+
+      // Verify NIK & RT/RW
+      const actualNik = targetCustomer.nik || '';
+      const actualRtRw = (targetCustomer.rt_rw || '').toLowerCase().replace(/\s+/g, '');
+      const cleanRtRwInput = rtRwAnswer.toLowerCase().replace(/\s+/g, '');
+
+      let isVerified = false;
+      if (actualNik && actualNik.length >= 4) {
+        if (nikLast4.trim() === actualNik.slice(-4)) {
+          isVerified = true;
+        }
+      }
+
+      if (actualRtRw && cleanRtRwInput && (actualRtRw.includes(cleanRtRwInput) || cleanRtRwInput.includes(actualRtRw))) {
+        isVerified = true;
+      }
+
+      // Demo bypass for test NIK
+      if (nikLast4 === '0001' || nikLast4 === '0002' || nikLast4 === '1234' || isVerified) {
         setFoundCustomer(targetCustomer);
         setFoundUser({
           username: targetCustomer.customer_no.toLowerCase(),
           fullName: targetCustomer.full_name,
         });
-        setStep(2);
-        success('Akun ditemukan! Silakan jawab pertanyaan keamanan untuk verifikasi identitas Anda.');
-        return;
-      }
-
-      // If not customer, check users list
-      const users = await api.getUsers({ search: clean });
-      const targetUser = users.find((u: any) => u.username.toLowerCase() === clean);
-
-      if (targetUser) {
-        setFoundUser({
-          id: targetUser.id,
-          username: targetUser.username,
-          fullName: targetUser.full_name,
-          role: targetUser.role,
-        });
-        // If user is admin or operator, allow direct reset or verification
-        setStep(2);
-        success('Akun ditemukan! Silakan jawab pertanyaan verifikasi.');
-        return;
-      }
-
-      toastError('Akun dengan identitas tersebut tidak ditemukan.');
-    } catch (err: any) {
-      toastError(err.message || 'Gagal mencari akun.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 2. Verify Security Questions
-  const handleVerifyQuestions = (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      if (foundCustomer) {
-        const actualNik = foundCustomer.nik || '';
-        const actualRtRw = (foundCustomer.rt_rw || '').toLowerCase().replace(/\s+/g, '');
-        const cleanRtRwInput = rtRwAnswer.toLowerCase().replace(/\s+/g, '');
-
-        let isVerified = false;
-
-        // Check NIK 4 digit
-        if (actualNik && actualNik.length >= 4) {
-          const expectedLast4 = actualNik.slice(-4);
-          if (nikLast4.trim() === expectedLast4) {
-            isVerified = true;
-          }
-        }
-
-        // Check RT/RW
-        if (actualRtRw && cleanRtRwInput && (actualRtRw.includes(cleanRtRwInput) || cleanRtRwInput.includes(actualRtRw))) {
-          isVerified = true;
-        }
-
-        // Check Phone
-        if (foundCustomer.phone && phoneAnswer.trim() && foundCustomer.phone.includes(phoneAnswer.trim())) {
-          isVerified = true;
-        }
-
-        // Allow demo verification
-        if (nikLast4 === '0001' || nikLast4 === '0002' || nikLast4 === '1234' || isVerified) {
-          success('Verifikasi identitas berhasil! Silakan tentukan kata sandi baru Anda.');
-          setStep(3);
-        } else {
-          toastError('Jawaban verifikasi tidak cocok dengan data terdaftar.');
-        }
-      } else {
-        // Operator / Admin verification
-        success('Identitas terverifikasi.');
         setStep(3);
+        success('Verifikasi identitas berhasil! Silakan tentukan kata sandi baru.');
+      } else {
+        toastError('Jawaban verifikasi NIK atau RT/RW tidak cocok dengan data terdaftar.');
       }
+    } catch (err: any) {
+      toastError(err.message || 'Gagal memverifikasi data.');
     } finally {
       setLoading(false);
     }
@@ -151,15 +135,25 @@ export const ForgotPasswordPage: React.FC = () => {
 
     try {
       setLoading(true);
-      if (foundUser?.id) {
-        await api.resetUserPassword(foundUser.id, newPassword);
+      // Update password via user reset
+      const users = await api.getUsers({ search: foundCustomer?.customer_no });
+      const targetUser = users.find((u: any) => u.username.toLowerCase() === foundCustomer?.customer_no.toLowerCase());
+
+      if (targetUser) {
+        await api.resetUserPassword(targetUser.id, newPassword);
       }
-      success('Kata sandi berhasil diperbarui! Silakan login dengan kata sandi baru.');
+
+      // Invalidate token
+      if (verifiedToken?.id) {
+        await api.deleteRegistrationToken(verifiedToken.id);
+      }
+
+      success('Kata sandi berhasil diubah! Silakan login dengan kata sandi baru.');
       setTimeout(() => {
         navigate('/login');
       }, 1500);
     } catch (err: any) {
-      toastError(err.message || 'Gagal mengubah kata sandi.');
+      toastError(err.message || 'Gagal mereset kata sandi.');
     } finally {
       setLoading(false);
     }
@@ -196,38 +190,45 @@ export const ForgotPasswordPage: React.FC = () => {
             <KeyRound size={28} />
           </div>
           <h1 style={{ fontSize: 20, fontWeight: 800, color: 'var(--slate-900)' }}>
-            Pemulihan Kata Sandi
+            Pemulihan Kata Sandi Akun
           </h1>
           <p style={{ fontSize: 13, color: 'var(--slate-500)', marginTop: 4 }}>
-            Verifikasi data pribadi untuk memulihkan akses akun Anda
+            Verifikasi Token Admin & Pertanyaan Keamanan Pribadi
           </p>
         </div>
 
         <Card>
           {step === 1 && (
-            /* STEP 1: Identify */
-            <form onSubmit={handleIdentify}>
+            /* STEP 1: Input Admin Confirmation Token First */
+            <form onSubmit={handleVerifyToken}>
               <div
                 style={{
-                  padding: 12,
-                  backgroundColor: 'var(--primary-50)',
+                  padding: 14,
+                  backgroundColor: 'var(--danger-50)',
                   borderRadius: 'var(--radius-md)',
-                  border: '1px solid var(--primary-200)',
+                  border: '1px solid rgba(239,68,68,0.3)',
                   marginBottom: 18,
-                  fontSize: 13,
-                  color: 'var(--primary-900)',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 10,
                 }}
               >
-                Masukkan Nomor Pelanggan (misal <strong>CUST-2026-0001</strong>), Username, atau Nomor WhatsApp terdaftar.
+                <ShieldAlert size={20} color="var(--danger-600)" style={{ flexShrink: 0, marginTop: 2 }} />
+                <div style={{ fontSize: 12.5, color: 'var(--danger-900)', lineHeight: 1.5 }}>
+                  <strong>Memerlukan Token Konfirmasi Admin</strong>
+                  <p style={{ marginTop: 2, color: 'var(--slate-700)' }}>
+                    Demi keamanan akun, sebelum mereset kata sandi Anda wajib memasukkan token yang diberikan oleh Administrator.
+                  </p>
+                </div>
               </div>
 
               <Input
-                label="Nomor Pelanggan / Username / No. HP"
-                placeholder="Contoh: CUST-2026-0001 atau 081234567801"
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                leftIcon={<User size={18} />}
+                label="Masukkan Token Reset dari Admin"
+                placeholder="Contoh: DESA-AIR-2026 atau WARGA-MANDIRI-88"
+                value={tokenStr}
+                onChange={(e) => setTokenStr(e.target.value.toUpperCase())}
                 required
+                hint="Hubungi admin via WhatsApp untuk mendapatkan kode token reset."
               />
 
               <Button
@@ -237,10 +238,37 @@ export const ForgotPasswordPage: React.FC = () => {
                 loading={loading}
                 style={{ width: '100%', marginTop: 8 }}
               >
-                Lanjutkan Verifikasi
+                Verifikasi Token Admin & Lanjutkan
               </Button>
 
-              <div style={{ textAlign: 'center', marginTop: 16, fontSize: 13 }}>
+              {/* Direct WhatsApp button to Admin */}
+              <div style={{ marginTop: 18, textAlign: 'center' }}>
+                <a
+                  href={waRequestUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    width: '100%',
+                    padding: '10px 16px',
+                    borderRadius: 'var(--radius-md)',
+                    backgroundColor: '#25D366',
+                    color: '#ffffff',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                    boxShadow: '0 2px 8px rgba(37, 211, 102, 0.3)',
+                  }}
+                >
+                  <MessageSquare size={16} />
+                  <span>Minta Token via WhatsApp Admin</span>
+                </a>
+              </div>
+
+              <div style={{ textAlign: 'center', marginTop: 18, fontSize: 13 }}>
                 <Link to="/login" style={{ fontWeight: 600, color: 'var(--slate-600)' }}>
                   &larr; Kembali ke Halaman Login
                 </Link>
@@ -249,29 +277,38 @@ export const ForgotPasswordPage: React.FC = () => {
           )}
 
           {step === 2 && (
-            /* STEP 2: Security Questions */
-            <form onSubmit={handleVerifyQuestions}>
+            /* STEP 2: Identity & Security Questions */
+            <form onSubmit={handleVerifyIdentity}>
               <div
                 style={{
                   padding: 12,
-                  backgroundColor: 'var(--slate-50)',
+                  backgroundColor: 'var(--success-50)',
                   borderRadius: 'var(--radius-md)',
+                  border: '1px solid rgba(16,185,129,0.3)',
                   marginBottom: 16,
-                  border: '1px solid var(--slate-200)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
                 }}
               >
-                <div style={{ fontSize: 12, color: 'var(--slate-500)' }}>Memverifikasi Akun:</div>
-                <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--slate-900)' }}>
-                  {foundCustomer?.full_name || foundUser?.fullName}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--slate-500)' }}>
-                  No. Pelanggan: {foundCustomer?.customer_no || foundUser?.username}
+                <ShieldCheck size={20} color="var(--success-600)" />
+                <div style={{ fontSize: 12.5, color: 'var(--success-800)' }}>
+                  Token <strong>{tokenStr}</strong> valid! Silakan verifikasi data diri Anda.
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <Input
+                label="Nomor Pelanggan atau Nomor HP Terdaftar"
+                placeholder="Contoh: CUST-2026-0001 atau 081234567801"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                leftIcon={<User size={18} />}
+                required
+              />
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 12 }}>
                 <Input
-                  label="Pertanyaan 1: Masukkan 4 Digit Terakhir NIK KTP Anda"
+                  label="Pertanyaan Keamanan 1: 4 Digit Terakhir NIK KTP Anda"
                   placeholder="Contoh: 0001"
                   value={nikLast4}
                   onChange={(e) => setNikLast4(e.target.value)}
@@ -280,19 +317,11 @@ export const ForgotPasswordPage: React.FC = () => {
                 />
 
                 <Input
-                  label="Pertanyaan 2: Masukkan Wilayah RT / RW Tempat Tinggal"
+                  label="Pertanyaan Keamanan 2: Wilayah RT / RW Terdaftar"
                   placeholder="Contoh: RT 01 / RW 01"
                   value={rtRwAnswer}
                   onChange={(e) => setRtRwAnswer(e.target.value)}
                   required
-                />
-
-                <Input
-                  label="Pertanyaan 3: 4 Digit Terakhir No. WhatsApp / HP Anda (Opsional)"
-                  placeholder="Contoh: 7801"
-                  value={phoneAnswer}
-                  onChange={(e) => setPhoneAnswer(e.target.value)}
-                  maxLength={4}
                 />
               </div>
 
@@ -303,7 +332,7 @@ export const ForgotPasswordPage: React.FC = () => {
                 loading={loading}
                 style={{ width: '100%', marginTop: 16 }}
               >
-                Verifikasi Jawaban
+                Verifikasi Jawaban & Ganti Sandi
               </Button>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 14, fontSize: 13 }}>
@@ -312,7 +341,7 @@ export const ForgotPasswordPage: React.FC = () => {
                   onClick={() => setStep(1)}
                   style={{ background: 'none', border: 'none', color: 'var(--slate-500)', cursor: 'pointer' }}
                 >
-                  &larr; Ganti Akun
+                  &larr; Ganti Token
                 </button>
                 <Link to="/login" style={{ color: 'var(--slate-600)' }}>
                   Batal
@@ -338,7 +367,7 @@ export const ForgotPasswordPage: React.FC = () => {
               >
                 <CheckCircle2 size={20} color="var(--success-600)" />
                 <div style={{ fontSize: 13, color: 'var(--success-800)' }}>
-                  Identitas berhasil diverifikasi. Silakan atur kata sandi baru.
+                  Identitas <strong>{foundCustomer?.full_name}</strong> terverifikasi. Silakan atur kata sandi baru.
                 </div>
               </div>
 
@@ -362,9 +391,9 @@ export const ForgotPasswordPage: React.FC = () => {
               />
 
               <Input
-                label="Ulangi Kata Sandi Baru"
+                label="Konfirmasi Kata Sandi Baru"
                 type={showPassword ? 'text' : 'password'}
-                placeholder="Konfirmasi kata sandi"
+                placeholder="Ulangi kata sandi baru"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 leftIcon={<Lock size={18} />}
@@ -376,29 +405,12 @@ export const ForgotPasswordPage: React.FC = () => {
                 variant="success"
                 icon={<CheckCircle2 size={16} />}
                 loading={loading}
-                style={{ width: '100%', marginTop: 12 }}
+                style={{ width: '100%', marginTop: 14 }}
               >
                 Simpan Kata Sandi Baru
               </Button>
             </form>
           )}
-
-          {/* Help WhatsApp Box */}
-          <div
-            style={{
-              marginTop: 20,
-              padding: 12,
-              backgroundColor: 'var(--slate-50)',
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--slate-200)',
-              textAlign: 'center',
-              fontSize: 12,
-              color: 'var(--slate-600)',
-            }}
-          >
-            Kendala memulihkan akun? Hubungi Pengelola BUMDes di{' '}
-            <strong style={{ color: 'var(--primary-700)' }}>{settings.contact_phone}</strong>
-          </div>
         </Card>
       </div>
     </div>

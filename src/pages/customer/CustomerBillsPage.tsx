@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Receipt, Printer, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Receipt, Printer, AlertTriangle, CheckCircle, MessageSquare, QrCode } from 'lucide-react';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
@@ -9,18 +9,23 @@ import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { BillInvoiceModal } from '../../components/print/BillInvoicePrint';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { useSettings } from '../../context/SettingsContext';
 import { api } from '../../services/api';
 import { Bill } from '../../types';
 import { formatRupiah, formatM3, formatDate, formatPeriod } from '../../utils/formatters';
 
 export const CustomerBillsPage: React.FC = () => {
   const { user } = useAuth();
+  const { settings } = useSettings();
   const [bills, setBills] = useState<Bill[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
   const [invoiceModalOpen, setInvoiceModalOpen] = useState<boolean>(false);
 
   const { error: toastError } = useToast();
+
+  const adminPhone = settings.contact_phone || '081234567890';
+  const cleanAdminPhone = adminPhone.replace(/[^0-9]/g, '').replace(/^0/, '62');
 
   const fetchBills = useCallback(async () => {
     try {
@@ -93,21 +98,51 @@ export const CustomerBillsPage: React.FC = () => {
       )
     },
     {
-      header: 'Aksi',
+      header: 'Aksi & Bayar',
       align: 'right' as const,
-      render: (b: Bill) => (
-        <Button
-          size="sm"
-          variant="secondary"
-          icon={<Printer size={13} />}
-          onClick={() => {
-            setSelectedBill(b);
-            setInvoiceModalOpen(true);
-          }}
-        >
-          Rincian & Cetak
-        </Button>
-      )
+      render: (b: Bill) => {
+        const waMsg = `Halo Admin BUMDes, saya ingin konfirmasi pembayaran tagihan air:\n• No. Faktur: ${b.bill_no}\n• Nama: ${b.customer_name}\n• Periode: ${formatPeriod(b.period_month, b.period_year)}\n• Jumlah: ${formatRupiah(b.balance_due || b.total_amount)}\n\nBerikut saya lampirkan bukti transfer. Terima kasih.`;
+        const waUrl = `https://wa.me/${cleanAdminPhone}?text=${encodeURIComponent(waMsg)}`;
+
+        return (
+          <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+            {b.status !== 'Lunas' && (
+              <a
+                href={waUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '5px 10px',
+                  borderRadius: 'var(--radius-sm)',
+                  backgroundColor: '#25D366',
+                  color: '#ffffff',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                }}
+                title="Konfirmasi pembayaran via WhatsApp"
+              >
+                <MessageSquare size={13} />
+                <span>Konfirmasi WA</span>
+              </a>
+            )}
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<Printer size={13} />}
+              onClick={() => {
+                setSelectedBill(b);
+                setInvoiceModalOpen(true);
+              }}
+            >
+              Rincian
+            </Button>
+          </div>
+        );
+      }
     }
   ];
 

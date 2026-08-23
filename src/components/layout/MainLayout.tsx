@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { MobileBottomNav } from './MobileBottomNav';
 
 export const MainLayout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
@@ -14,6 +15,7 @@ export const MainLayout: React.FC = () => {
         <main className="page-content">
           <Outlet />
         </main>
+        <MobileBottomNav />
       </div>
     </div>
   );

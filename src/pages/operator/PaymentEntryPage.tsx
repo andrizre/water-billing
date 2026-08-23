@@ -15,6 +15,7 @@ import { Select } from '../../components/common/Select';
 import { Badge } from '../../components/common/Badge';
 import { PaymentReceiptModal } from '../../components/print/PaymentReceiptPrint';
 import { useToast } from '../../context/ToastContext';
+import { useSettings } from '../../context/SettingsContext';
 import { api } from '../../services/api';
 import { Bill, Payment, PaymentMethod } from '../../types';
 import { formatRupiah, formatM3, formatPeriod } from '../../utils/formatters';
@@ -37,6 +38,7 @@ export const PaymentEntryPage: React.FC = () => {
   const [recordedPayment, setRecordedPayment] = useState<Payment | null>(null);
 
   const { success, error: toastError } = useToast();
+  const { settings } = useSettings();
 
   const fetchUnpaidBills = useCallback(async () => {
     try {
@@ -252,6 +254,32 @@ export const PaymentEntryPage: React.FC = () => {
                   required
                 />
               </div>
+
+              {/* QRIS Display for Cashier Counter */}
+              {paymentMethod === 'QRIS' && (
+                <div
+                  style={{
+                    backgroundColor: 'var(--primary-50)',
+                    padding: 16,
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--primary-200)',
+                    margin: '12px 0',
+                    textAlign: 'center'
+                  }}
+                >
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary-900)', display: 'block', marginBottom: 8 }}>
+                    SCAN QRIS RESMI BUMDES:
+                  </span>
+                  <img
+                    src={settings.qris_image_url || 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=BUMDes%20Tirta%20Sandmosquito%20Water%20Billing'}
+                    alt="Barcode QRIS Kasir"
+                    style={{ width: 150, height: 150, objectFit: 'contain', margin: '0 auto', display: 'block', borderRadius: 8, border: '1px solid var(--slate-300)', backgroundColor: '#ffffff', padding: 6 }}
+                  />
+                  <span style={{ fontSize: 12, color: 'var(--slate-600)', marginTop: 6, display: 'block' }}>
+                    {settings.qris_info || 'Tersedia di loket kantor desa atau scan barcode resmi'}
+                  </span>
+                </div>
+              )}
 
               {paymentMethod === 'Tunai' && (
                 <div

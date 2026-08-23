@@ -10,7 +10,8 @@ import {
   CheckCircle2,
   RefreshCw,
   Zap,
-  Activity
+  Activity,
+  MessageSquare
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '../../components/layout/PageHeader';
@@ -247,8 +248,48 @@ export const CustomerDashboard: React.FC = () => {
               <div style={{ fontWeight: 700, color: 'var(--slate-900)' }}>2. Transfer Bank Resmi</div>
               <div style={{ fontWeight: 600, color: 'var(--primary-800)' }}>{settings.bank_account_info}</div>
             </div>
-            <div style={{ marginTop: 10, fontSize: 12, color: 'var(--slate-500)' }}>
-              *Konfirmasi bukti transfer ke WhatsApp Pengelola: <strong>{settings.contact_phone}</strong>.
+
+            {/* QRIS Display */}
+            <div style={{ marginTop: 8, padding: 12, backgroundColor: 'var(--slate-50)', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)', textAlign: 'center' }}>
+              <div style={{ fontWeight: 700, color: 'var(--slate-900)', marginBottom: 6 }}>3. Scan QRIS Resmi Desa</div>
+              <img
+                src={settings.qris_image_url || 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=BUMDes%20Tirta%20Sandmosquito%20Water%20Billing'}
+                alt="QRIS BUMDes"
+                style={{ width: 130, height: 130, margin: '0 auto', display: 'block', borderRadius: 8, border: '1px solid var(--slate-200)', backgroundColor: '#fff', padding: 4 }}
+              />
+              <div style={{ fontSize: 11, color: 'var(--slate-500)', marginTop: 4 }}>{settings.qris_info || 'QRIS Resmi BUMDes Tirta Sandmosquito'}</div>
+            </div>
+
+            {/* WhatsApp Confirmation Link */}
+            <div style={{ marginTop: 14 }}>
+              <a
+                href={`https://wa.me/${(settings.contact_phone || '081234567890').replace(/[^0-9]/g, '').replace(/^0/, '62')}?text=${encodeURIComponent(
+                  `Halo Admin BUMDes, saya atas nama ${customer?.full_name || user?.fullName} (No. Pelanggan: ${customer?.customer_no || user?.username}) ingin konfirmasi pembayaran tagihan air sebesar ${active_bill ? formatRupiah(active_bill.balance_due || active_bill.total_amount) : ''}. Berikut saya lampirkan bukti transfer. Terima kasih.`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  width: '100%',
+                  padding: '10px 16px',
+                  borderRadius: 'var(--radius-md)',
+                  backgroundColor: '#25D366',
+                  color: '#ffffff',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                  boxShadow: '0 2px 8px rgba(37, 211, 102, 0.3)',
+                }}
+              >
+                <MessageSquare size={16} />
+                <span>Konfirmasi Pembayaran via WhatsApp</span>
+              </a>
+            </div>
+            <div style={{ marginTop: 8, fontSize: 11, color: 'var(--slate-500)', textAlign: 'center' }}>
+              *Kirimkan bukti struk/foto transfer ke WhatsApp Pengelola: <strong>{settings.contact_phone}</strong>
             </div>
           </div>
         </Card>

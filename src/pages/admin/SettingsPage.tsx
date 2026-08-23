@@ -313,7 +313,31 @@ export const SettingsPage: React.FC = () => {
               label="Informasi Pembayaran QRIS"
               value={formData.qris_info}
               onChange={(e) => handleChange('qris_info', e.target.value)}
+              hint="Keterangan teks QRIS (nama merchant / BUMDes)"
             />
+
+            <Input
+              label="URL / Gambar Barcode QRIS Resmi"
+              placeholder="https://... atau paste URL gambar QRIS BUMDes"
+              value={formData.qris_image_url || ''}
+              onChange={(e) => handleChange('qris_image_url', e.target.value)}
+              hint="Link gambar barcode QRIS yang akan ditampilkan di kasir & tagihan warga"
+            />
+
+            {/* QRIS Image Preview */}
+            <div style={{ marginTop: 8, marginBottom: 16, padding: 12, backgroundColor: 'var(--slate-50)', borderRadius: 'var(--radius-md)', border: '1px dashed var(--slate-300)', textAlign: 'center' }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--slate-600)', display: 'block', marginBottom: 8 }}>
+                Pratinjau Kode QRIS Resmi:
+              </span>
+              <img
+                src={formData.qris_image_url || 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=BUMDes%20Tirta%20Sandmosquito%20Water%20Billing'}
+                alt="Barcode QRIS"
+                style={{ width: 140, height: 140, objectFit: 'contain', margin: '0 auto', display: 'block', borderRadius: 8, border: '1px solid var(--slate-200)' }}
+              />
+              <span style={{ fontSize: 11, color: 'var(--slate-400)', marginTop: 4, display: 'block' }}>
+                *QRIS ini otomatis tampil di layar kasir operator dan invoice tagihan warga.
+              </span>
+            </div>
 
             <div className="form-group">
               <label className="form-label">Catatan Kaki Faktur / Struk Pembayaran</label>
