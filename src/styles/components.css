@@ -791,4 +791,37 @@
     gap: 10px;
     text-align: center;
   }
+
+  .modal-overlay {
+    padding: 8px;
+  }
+}
+
+/* 11. QRIS & MEDIA RESPONSIVE CONTAINERS */
+.qris-card-wrapper {
+  background-color: var(--slate-50);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--slate-200);
+  padding: 16px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.qris-image-responsive {
+  width: 100%;
+  max-width: 150px;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  margin: 0 auto;
+  display: block;
+  border-radius: 8px;
+  border: 1px solid var(--slate-200);
+  background-color: #ffffff;
+  padding: 6px;
+  box-shadow: var(--shadow-sm);
 }

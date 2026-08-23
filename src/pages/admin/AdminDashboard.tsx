@@ -23,6 +23,7 @@ import { Badge } from '../../components/common/Badge';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { UsageBarChart } from '../../components/charts/UsageBarChart';
 import { RevenueLineChart } from '../../components/charts/RevenueLineChart';
+import { DataTable } from '../../components/common/DataTable';
 import { BillInvoiceModal } from '../../components/print/BillInvoicePrint';
 import { PaymentReceiptModal } from '../../components/print/PaymentReceiptPrint';
 import { AnnouncementBanner } from '../../components/common/AnnouncementBanner';
@@ -210,14 +211,7 @@ export const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Analytics Charts Grid */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))',
-          gap: 20,
-          marginBottom: 24
-        }}
-      >
+      <div className="responsive-grid-2" style={{ marginBottom: 24 }}>
         <Card
           title={
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -260,55 +254,63 @@ export const AdminDashboard: React.FC = () => {
           </Link>
         }
       >
-        <div className="table-responsive">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>No. Pembayaran</th>
-                <th>Tanggal & Waktu</th>
-                <th>Nama Pelanggan</th>
-                <th>Periode</th>
-                <th>Metode</th>
-                <th>Nominal</th>
-                <th>Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recent_payments.map((p) => (
-                <tr key={p.id} className="row-hover-highlight">
-                  <td style={{ fontWeight: 700 }}>{p.payment_no}</td>
-                  <td>{formatDateTime(p.payment_date || p.created_at)}</td>
-                  <td>
-                    <div style={{ fontWeight: 600 }}>{p.customer_name}</div>
-                    <div style={{ fontSize: 11, color: 'var(--slate-500)' }}>{p.customer_no}</div>
-                  </td>
-                  <td>
-                    {p.period_month && p.period_year ? formatPeriod(p.period_month, p.period_year) : '-'}
-                  </td>
-                  <td>
-                    <Badge variant="neutral">{p.payment_method}</Badge>
-                  </td>
-                  <td style={{ fontWeight: 800, color: 'var(--success-700)' }}>
-                    {formatRupiah(p.amount_paid)}
-                  </td>
-                  <td>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      icon={<Printer size={13} />}
-                      onClick={() => {
-                        setSelectedPayment(p);
-                        setPaymentModalOpen(true);
-                      }}
-                    >
-                      Kuitansi
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          columns={[
+            {
+              header: 'No. Pembayaran',
+              render: (p: Payment) => <span style={{ fontWeight: 700, color: 'var(--primary-700)' }}>{p.payment_no}</span>
+            },
+            {
+              header: 'Tanggal & Waktu',
+              render: (p: Payment) => formatDateTime(p.payment_date || p.created_at)
+            },
+            {
+              header: 'Nama Pelanggan',
+              render: (p: Payment) => (
+                <div>
+                  <div style={{ fontWeight: 600 }}>{p.customer_name}</div>
+                  <div style={{ fontSize: 11, color: 'var(--slate-500)' }}>{p.customer_no}</div>
+                </div>
+              )
+            },
+            {
+              header: 'Periode',
+              render: (p: Payment) => p.period_month && p.period_year ? formatPeriod(p.period_month, p.period_year) : '-'
+            },
+            {
+              header: 'Metode',
+              render: (p: Payment) => <Badge variant="neutral">{p.payment_method}</Badge>
+            },
+            {
+              header: 'Nominal',
+              render: (p: Payment) => (
+                <span style={{ fontWeight: 800, color: 'var(--success-700)' }}>
+                  {formatRupiah(p.amount_paid)}
+                </span>
+              )
+            },
+            {
+              header: 'Aksi',
+              align: 'right' as const,
+              render: (p: Payment) => (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  icon={<Printer size={13} />}
+                  onClick={() => {
+                    setSelectedPayment(p);
+                    setPaymentModalOpen(true);
+                  }}
+                >
+                  Kuitansi
+                </Button>
+              )
+            }
+          ]}
+          data={recent_payments}
+          emptyTitle="Belum Ada Transaksi"
+          emptyMessage="Belum ada transaksi pembayaran air yang tercatat."
+        />
       </Card>
 
       {/* Modals for Invoices and Receipts */}

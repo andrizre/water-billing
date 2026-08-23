@@ -27,70 +27,103 @@ export const UsageBarChart: React.FC<UsageBarChartProps> = ({
 
   const maxVal = Math.max(...data.map((d) => d.usage_m3), 10);
   const chartHeight = height - 40; // reserve 40px for labels
+  const minChartWidth = Math.max(280, data.length * 52);
 
   return (
-    <div style={{ width: '100%', height, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+    <div className="chart-scroll-wrapper">
       <div
         style={{
-          height: chartHeight,
+          width: '100%',
+          minWidth: minChartWidth,
+          height,
           display: 'flex',
-          alignItems: 'flex-end',
-          gap: 16,
-          padding: '0 8px',
-          borderBottom: '1px solid var(--slate-200)'
+          flexDirection: 'column',
+          justifyContent: 'flex-end'
         }}
       >
-        {data.map((item, idx) => {
-          const barH = Math.max(6, (item.usage_m3 / maxVal) * (chartHeight - 30));
-          return (
+        {/* Bars Container */}
+        <div
+          style={{
+            height: chartHeight,
+            display: 'flex',
+            alignItems: 'flex-end',
+            gap: 8,
+            padding: '0 8px',
+            borderBottom: '1px solid var(--slate-200)'
+          }}
+        >
+          {data.map((item, idx) => {
+            const barH = Math.max(6, (item.usage_m3 / maxVal) * (chartHeight - 32));
+            return (
+              <div
+                key={idx}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 4,
+                  minWidth: 36
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                    color: 'var(--slate-600)',
+                    whiteSpace: 'nowrap',
+                    lineHeight: 1
+                  }}
+                >
+                  {formatM3(item.usage_m3)}
+                </span>
+                <div
+                  title={`${item.period_name}: ${item.usage_m3} m³`}
+                  style={{
+                    width: '100%',
+                    maxWidth: 42,
+                    height: barH,
+                    backgroundColor: barColor,
+                    borderRadius: '6px 6px 0 0',
+                    transition: 'height 0.3s ease, transform 0.15s ease',
+                    background: 'linear-gradient(180deg, var(--primary-500), var(--primary-700))',
+                    boxShadow: '0 2px 6px rgba(2, 132, 199, 0.2)',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scaleY(1.03)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scaleY(1)';
+                  }}
+                />
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Month Labels */}
+        <div style={{ display: 'flex', gap: 8, padding: '8px 8px 0 8px' }}>
+          {data.map((item, idx) => (
             <div
               key={idx}
               style={{
                 flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 6
+                minWidth: 36,
+                textAlign: 'center',
+                fontSize: 11,
+                fontWeight: 600,
+                color: 'var(--slate-500)',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
               }}
+              title={item.period_name}
             >
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--slate-600)' }}>
-                {formatM3(item.usage_m3)}
-              </span>
-              <div
-                title={`${item.period_name}: ${item.usage_m3} m³`}
-                style={{
-                  width: '100%',
-                  maxWidth: 48,
-                  height: barH,
-                  backgroundColor: barColor,
-                  borderRadius: '6px 6px 0 0',
-                  transition: 'height 0.3s ease',
-                  background: 'linear-gradient(180deg, var(--primary-500), var(--primary-700))',
-                  boxShadow: '0 2px 6px rgba(2, 132, 199, 0.2)'
-                }}
-              />
+              {item.period_name}
             </div>
-          );
-        })}
-      </div>
-      <div style={{ display: 'flex', gap: 16, padding: '8px 8px 0 8px' }}>
-        {data.map((item, idx) => (
-          <div
-            key={idx}
-            style={{
-              flex: 1,
-              textAlign: 'center',
-              fontSize: 11.5,
-              fontWeight: 600,
-              color: 'var(--slate-500)',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis'
-            }}
-          >
-            {item.period_name}
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );

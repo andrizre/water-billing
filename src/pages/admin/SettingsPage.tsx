@@ -230,7 +230,7 @@ export const SettingsPage: React.FC = () => {
         </div>
       </Card>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 24 }}>
+      <div className="responsive-grid-2">
         {/* Village & Agency Profile Card */}
         <Card title="Identitas BUMDes / Pengelola Air">
           <form onSubmit={handleSave}>
@@ -258,7 +258,7 @@ export const SettingsPage: React.FC = () => {
               onChange={(e) => handleChange('village_address', e.target.value)}
               required
             />
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div className="form-grid-2">
               <Input
                 label="Nomor WhatsApp Pengelola"
                 value={formData.contact_phone}
@@ -280,7 +280,7 @@ export const SettingsPage: React.FC = () => {
         {/* Billing & Payment Configuration Card */}
         <Card title="Aturan Pembayaran & Rekening Bank">
           <form onSubmit={handleSave}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div className="form-grid-2">
               <Input
                 label="Tanggal Batas Jatuh Tempo (Setiap Bulan)"
                 type="number"
@@ -325,14 +325,14 @@ export const SettingsPage: React.FC = () => {
             />
 
             {/* QRIS Image Preview */}
-            <div style={{ marginTop: 8, marginBottom: 16, padding: 12, backgroundColor: 'var(--slate-50)', borderRadius: 'var(--radius-md)', border: '1px dashed var(--slate-300)', textAlign: 'center' }}>
+            <div className="qris-card-wrapper" style={{ marginTop: 8, marginBottom: 16 }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--slate-600)', display: 'block', marginBottom: 8 }}>
                 Pratinjau Kode QRIS Resmi:
               </span>
               <img
                 src={formData.qris_image_url || 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=BUMDes%20Tirta%20Sandmosquito%20Water%20Billing'}
                 alt="Barcode QRIS"
-                style={{ width: 140, height: 140, objectFit: 'contain', margin: '0 auto', display: 'block', borderRadius: 8, border: '1px solid var(--slate-200)' }}
+                className="qris-image-responsive"
               />
               <span style={{ fontSize: 11, color: 'var(--slate-400)', marginTop: 4, display: 'block' }}>
                 *QRIS ini otomatis tampil di layar kasir operator dan invoice tagihan warga.

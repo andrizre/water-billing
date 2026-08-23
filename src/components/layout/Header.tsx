@@ -92,21 +92,22 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 6,
-              fontSize: 12,
+              gap: 5,
+              fontSize: 11.5,
               fontWeight: 600,
               backgroundColor: 'var(--primary-50)',
               color: 'var(--primary-700)',
-              padding: '5px 10px',
+              padding: '4px 8px',
               borderRadius: 9999,
               border: '1px solid var(--primary-200)',
               transition: 'all 0.2s ease',
               whiteSpace: 'nowrap',
             }}
             className="hover-lift"
+            title="Cek Tagihan Warga Mandiri"
           >
             <Search size={13} />
-            <span className="desktop-text-only">Cek Tagihan Warga</span>
+            <span className="desktop-text-only">Cek Tagihan</span>
           </Link>
 
           {/* Dynamic Backend Status Indicator */}
@@ -115,12 +116,12 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 5,
+              gap: 4,
               fontSize: 11,
               fontWeight: 600,
               backgroundColor: badgeInfo.bgColor,
               color: badgeInfo.textColor,
-              padding: '3px 8px',
+              padding: '3px 7px',
               borderRadius: 9999,
               border: `1px solid ${badgeInfo.borderColor}`,
               cursor: 'default',
@@ -138,10 +139,11 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
                 display: 'inline-block',
                 boxShadow: `0 0 6px ${badgeInfo.dotColor}`,
                 animation: 'pulse 2s infinite',
+                flexShrink: 0
               }}
             />
             {badgeInfo.icon}
-            <span>{badgeInfo.label}</span>
+            <span className="desktop-text-only">{badgeInfo.label}</span>
           </div>
         </div>
       </div>
@@ -157,24 +159,24 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
             className={`demo-role-btn ${role === 'admin' ? 'active' : ''}`}
             onClick={() => switchRoleDemo('admin')}
           >
-            <Shield size={13} style={{ marginRight: 3, verticalAlign: -2 }} />
-            Admin
+            <Shield size={12} style={{ marginRight: 2, verticalAlign: -2 }} />
+            <span>Admin</span>
           </button>
           <button
             type="button"
             className={`demo-role-btn ${role === 'operator' ? 'active' : ''}`}
             onClick={() => switchRoleDemo('operator')}
           >
-            <Wrench size={13} style={{ marginRight: 3, verticalAlign: -2 }} />
-            Operator
+            <Wrench size={12} style={{ marginRight: 2, verticalAlign: -2 }} />
+            <span>Operator</span>
           </button>
           <button
             type="button"
             className={`demo-role-btn ${role === 'customer' ? 'active' : ''}`}
             onClick={() => switchRoleDemo('customer')}
           >
-            <User size={13} style={{ marginRight: 3, verticalAlign: -2 }} />
-            Customer
+            <User size={12} style={{ marginRight: 2, verticalAlign: -2 }} />
+            <span>Warga</span>
           </button>
         </div>
       </div>

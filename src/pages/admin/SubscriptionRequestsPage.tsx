@@ -8,6 +8,7 @@ import { Modal } from '../../components/common/Modal';
 import { Select } from '../../components/common/Select';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { EmptyState } from '../../components/common/EmptyState';
+import { DataTable } from '../../components/common/DataTable';
 import { useToast } from '../../context/ToastContext';
 import { api } from '../../services/api';
 import { SubscriptionRequest, SubscriptionRequestStatus } from '../../types';
@@ -108,75 +109,78 @@ export const SubscriptionRequestsPage: React.FC = () => {
         </div>
       </Card>
 
-      {loading ? (
-        <LoadingSpinner text="Memuat daftar pengajuan..." />
-      ) : requests.length === 0 ? (
-        <EmptyState
-          icon={<UserCheck size={36} />}
-          title="Tidak Ada Pengajuan"
-          description="Belum ada permohonan perubahan golongan langganan dari warga."
-        />
-      ) : (
-        <div className="table-responsive">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>No. Pengajuan</th>
-                <th>Tanggal</th>
-                <th>Nama Pelanggan</th>
-                <th>Golongan Saat Ini</th>
-                <th>Diajukan Ke</th>
-                <th>Alasan Permohonan</th>
-                <th>Status</th>
-                <th>Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {requests.map((r) => (
-                <tr key={r.id} className="row-hover-highlight">
-                  <td style={{ fontWeight: 700 }}>{r.request_no}</td>
-                  <td>{formatDateTime(r.created_at || '')}</td>
-                  <td>
-                    <div style={{ fontWeight: 600 }}>{r.customer_name}</div>
-                    <div style={{ fontSize: 11, color: 'var(--slate-500)' }}>
-                      {r.customer_no} {r.phone ? `• ${r.phone}` : ''}
-                    </div>
-                  </td>
-                  <td>
-                    <Badge variant="neutral">{r.current_tariff_name}</Badge>
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <ArrowRight size={13} color="var(--primary-600)" />
-                      <Badge variant="info">{r.requested_tariff_name}</Badge>
-                    </div>
-                  </td>
-                  <td>
-                    <div style={{ fontSize: 13, color: 'var(--slate-700)', maxWidth: 260 }}>
-                      {r.reason}
-                    </div>
-                  </td>
-                  <td>{getStatusBadge(r.status)}</td>
-                  <td>
-                    {r.status === 'Menunggu' ? (
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        icon={<ShieldCheck size={13} />}
-                        onClick={() => handleOpenDecision(r)}
-                      >
-                        Proses
-                      </Button>
-                    ) : (
-                      <span style={{ fontSize: 12, color: 'var(--slate-400)' }}>Sudah Selesai</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <DataTable
+        columns={[
+          {
+            header: 'No. Pengajuan',
+            render: (r: SubscriptionRequest) => <span style={{ fontWeight: 700, color: 'var(--primary-700)' }}>{r.request_no}</span>
+          },
+          {
+            header: 'Tanggal',
+            render: (r: SubscriptionRequest) => formatDateTime(r.created_at || '')
+          },
+          {
+            header: 'Nama Pelanggan',
+            render: (r: SubscriptionRequest) => (
+              <div>
+                <div style={{ fontWeight: 600 }}>{r.customer_name}</div>
+                <div style={{ fontSize: 11, color: 'var(--slate-500)' }}>
+                  {r.customer_no} {r.phone ? `• ${r.phone}` : ''}
+                </div>
+              </div>
+            )
+          },
+          {
+            header: 'Golongan Saat Ini',
+            render: (r: SubscriptionRequest) => (
+              <Badge variant="neutral">{r.current_tariff_name}</Badge>
+            )
+          },
+          {
+            header: 'Diajukan Ke',
+            render: (r: SubscriptionRequest) => (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <ArrowRight size={13} color="var(--primary-600)" />
+                <Badge variant="info">{r.requested_tariff_name}</Badge>
+              </div>
+            )
+          },
+          {
+            header: 'Alasan Permohonan',
+            render: (r: SubscriptionRequest) => (
+              <div style={{ fontSize: 13, color: 'var(--slate-700)', maxWidth: 260 }}>
+                {r.reason}
+              </div>
+            )
+          },
+          {
+            header: 'Status',
+            render: (r: SubscriptionRequest) => getStatusBadge(r.status)
+          },
+          {
+            header: 'Aksi',
+            align: 'right' as const,
+            render: (r: SubscriptionRequest) => (
+              r.status === 'Menunggu' ? (
+                <Button
+                  size="sm"
+                  variant="primary"
+                  icon={<ShieldCheck size={13} />}
+                  onClick={() => handleOpenDecision(r)}
+                >
+                  Proses
+                </Button>
+              ) : (
+                <span style={{ fontSize: 12, color: 'var(--slate-400)' }}>Selesai</span>
+              )
+            )
+          }
+        ]}
+        data={requests}
+        loading={loading}
+        emptyTitle="Tidak Ada Pengajuan"
+        emptyMessage="Belum ada permohonan perubahan golongan langganan dari warga."
+      />
 
       {/* Decision Modal */}
       {activeRequest && (

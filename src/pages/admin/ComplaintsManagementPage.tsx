@@ -8,6 +8,7 @@ import { Modal } from '../../components/common/Modal';
 import { Select } from '../../components/common/Select';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { EmptyState } from '../../components/common/EmptyState';
+import { DataTable } from '../../components/common/DataTable';
 import { useToast } from '../../context/ToastContext';
 import { api } from '../../services/api';
 import { Complaint, ComplaintCategory, ComplaintStatus } from '../../types';
@@ -148,75 +149,80 @@ export const ComplaintsManagementPage: React.FC = () => {
         </div>
       </Card>
 
-      {loading ? (
-        <LoadingSpinner text="Memuat data pengaduan..." />
-      ) : complaints.length === 0 ? (
-        <EmptyState
-          icon={<MessageSquareWarning size={36} />}
-          title="Tidak Ada Pengaduan"
-          description="Belum ada keluhan yang masuk dari pelanggan."
-        />
-      ) : (
-        <div className="table-responsive">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>No. Laporan</th>
-                <th>Tanggal</th>
-                <th>Nama Pelanggan</th>
-                <th>Kategori</th>
-                <th>Judul Keluhan</th>
-                <th>Status</th>
-                <th>Ditangani Oleh</th>
-                <th>Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {complaints.map((c) => (
-                <tr key={c.id} className="row-hover-highlight">
-                  <td style={{ fontWeight: 700 }}>{c.complaint_no}</td>
-                  <td>{formatDateTime(c.created_at || '')}</td>
-                  <td>
-                    <div style={{ fontWeight: 600 }}>{c.customer_name}</div>
-                    <div style={{ fontSize: 11, color: 'var(--slate-500)' }}>
-                      {c.customer_no} {c.phone ? `• ${c.phone}` : ''}
-                    </div>
-                  </td>
-                  <td>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--slate-700)' }}>
-                      {getCategoryLabel(c.category)}
-                    </span>
-                  </td>
-                  <td>
-                    <div style={{ fontWeight: 600, color: 'var(--slate-900)' }}>{c.title}</div>
-                    <div style={{ fontSize: 12, color: 'var(--slate-500)', maxWidth: 280, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {c.description}
-                    </div>
-                  </td>
-                  <td>{getStatusBadge(c.status)}</td>
-                  <td>
-                    {c.handled_by ? (
-                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--slate-700)' }}>{c.handled_by}</span>
-                    ) : (
-                      <span style={{ fontSize: 12, color: 'var(--slate-400)' }}>-</span>
-                    )}
-                  </td>
-                  <td>
-                    <Button
-                      size="sm"
-                      variant="primary"
-                      icon={<MessageSquare size={13} />}
-                      onClick={() => handleOpenResponseModal(c)}
-                    >
-                      Tindak Lanjut
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <DataTable
+        columns={[
+          {
+            header: 'No. Laporan',
+            render: (c: Complaint) => <span style={{ fontWeight: 700, color: 'var(--primary-700)' }}>{c.complaint_no}</span>
+          },
+          {
+            header: 'Tanggal',
+            render: (c: Complaint) => formatDateTime(c.created_at || '')
+          },
+          {
+            header: 'Nama Pelanggan',
+            render: (c: Complaint) => (
+              <div>
+                <div style={{ fontWeight: 600 }}>{c.customer_name}</div>
+                <div style={{ fontSize: 11, color: 'var(--slate-500)' }}>
+                  {c.customer_no} {c.phone ? `• ${c.phone}` : ''}
+                </div>
+              </div>
+            )
+          },
+          {
+            header: 'Kategori',
+            render: (c: Complaint) => (
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--slate-700)' }}>
+                {getCategoryLabel(c.category)}
+              </span>
+            )
+          },
+          {
+            header: 'Judul Keluhan',
+            render: (c: Complaint) => (
+              <div>
+                <div style={{ fontWeight: 600, color: 'var(--slate-900)' }}>{c.title}</div>
+                <div style={{ fontSize: 12, color: 'var(--slate-500)', maxWidth: 280, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {c.description}
+                </div>
+              </div>
+            )
+          },
+          {
+            header: 'Status',
+            render: (c: Complaint) => getStatusBadge(c.status)
+          },
+          {
+            header: 'Ditangani Oleh',
+            render: (c: Complaint) => (
+              c.handled_by ? (
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--slate-700)' }}>{c.handled_by}</span>
+              ) : (
+                <span style={{ fontSize: 12, color: 'var(--slate-400)' }}>-</span>
+              )
+            )
+          },
+          {
+            header: 'Aksi',
+            align: 'right' as const,
+            render: (c: Complaint) => (
+              <Button
+                size="sm"
+                variant="primary"
+                icon={<MessageSquare size={13} />}
+                onClick={() => handleOpenResponseModal(c)}
+              >
+                Tindak Lanjut
+              </Button>
+            )
+          }
+        ]}
+        data={complaints}
+        loading={loading}
+        emptyTitle="Tidak Ada Pengaduan"
+        emptyMessage="Belum ada keluhan yang masuk dari pelanggan."
+      />
 
       {/* Response / Follow-up Modal */}
       {activeComplaint && (

@@ -19,6 +19,7 @@ import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
+import { DataTable } from '../../components/common/DataTable';
 import { PaymentReceiptModal } from '../../components/print/PaymentReceiptPrint';
 import { AnnouncementBanner } from '../../components/common/AnnouncementBanner';
 import { api } from '../../services/api';
@@ -318,7 +319,7 @@ export const OperatorDashboard: React.FC = () => {
       </div>
 
       {/* Tables Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 20 }}>
+      <div className="responsive-grid-2">
         {/* Recent Readings */}
         <Card
           title={
@@ -333,33 +334,38 @@ export const OperatorDashboard: React.FC = () => {
             </Link>
           }
         >
-          <div className="table-responsive">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Nama Pelanggan</th>
-                  <th>Periode</th>
-                  <th>Angka Meter</th>
-                  <th>Volume (m³)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recent_readings.map((r) => (
-                  <tr key={r.id} className="row-hover-highlight">
-                    <td>
-                      <div style={{ fontWeight: 700 }}>{r.customer_name}</div>
-                      <div style={{ fontSize: 11, color: 'var(--slate-500)' }}>{r.customer_no}</div>
-                    </td>
-                    <td>{formatPeriod(r.period_month, r.period_year)}</td>
-                    <td>{r.prev_reading} → {r.current_reading}</td>
-                    <td style={{ fontWeight: 800, color: 'var(--primary-700)' }}>
-                      {formatM3(r.usage_m3)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            columns={[
+              {
+                header: 'Nama Pelanggan',
+                render: (r: any) => (
+                  <div>
+                    <div style={{ fontWeight: 700 }}>{r.customer_name}</div>
+                    <div style={{ fontSize: 11, color: 'var(--slate-500)' }}>{r.customer_no}</div>
+                  </div>
+                )
+              },
+              {
+                header: 'Periode',
+                render: (r: any) => formatPeriod(r.period_month, r.period_year)
+              },
+              {
+                header: 'Angka Meter',
+                render: (r: any) => `${r.prev_reading} → ${r.current_reading}`
+              },
+              {
+                header: 'Volume (m³)',
+                render: (r: any) => (
+                  <span style={{ fontWeight: 800, color: 'var(--primary-700)' }}>
+                    {formatM3(r.usage_m3)}
+                  </span>
+                )
+              }
+            ]}
+            data={recent_readings}
+            emptyTitle="Belum Ada Catatan Meter"
+            emptyMessage="Belum ada data pencatatan meter terbaru."
+          />
         </Card>
 
         {/* Recent Cashier Receipts */}
@@ -376,42 +382,46 @@ export const OperatorDashboard: React.FC = () => {
             </Link>
           }
         >
-          <div className="table-responsive">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>No. Transaksi</th>
-                  <th>Nama Pelanggan</th>
-                  <th>Jumlah</th>
-                  <th>Kuitansi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recent_payments.map((p) => (
-                  <tr key={p.id} className="row-hover-highlight">
-                    <td style={{ fontWeight: 700 }}>{p.payment_no}</td>
-                    <td>{p.customer_name}</td>
-                    <td style={{ fontWeight: 800, color: 'var(--success-700)' }}>
-                      {formatRupiah(p.amount_paid)}
-                    </td>
-                    <td>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        icon={<Printer size={13} />}
-                        onClick={() => {
-                          setSelectedPayment(p);
-                          setReceiptModalOpen(true);
-                        }}
-                      >
-                        Cetak
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            columns={[
+              {
+                header: 'No. Transaksi',
+                render: (p: Payment) => <span style={{ fontWeight: 700 }}>{p.payment_no}</span>
+              },
+              {
+                header: 'Nama Pelanggan',
+                render: (p: Payment) => p.customer_name
+              },
+              {
+                header: 'Jumlah',
+                render: (p: Payment) => (
+                  <span style={{ fontWeight: 800, color: 'var(--success-700)' }}>
+                    {formatRupiah(p.amount_paid)}
+                  </span>
+                )
+              },
+              {
+                header: 'Kuitansi',
+                align: 'right' as const,
+                render: (p: Payment) => (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    icon={<Printer size={13} />}
+                    onClick={() => {
+                      setSelectedPayment(p);
+                      setReceiptModalOpen(true);
+                    }}
+                  >
+                    Cetak
+                  </Button>
+                )
+              }
+            ]}
+            data={recent_payments}
+            emptyTitle="Belum Ada Pembayaran"
+            emptyMessage="Belum ada transaksi penerimaan kasir terbaru."
+          />
         </Card>
       </div>
 

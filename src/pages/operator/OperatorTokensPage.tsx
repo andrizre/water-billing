@@ -6,6 +6,7 @@ import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { EmptyState } from '../../components/common/EmptyState';
+import { DataTable } from '../../components/common/DataTable';
 import { useToast } from '../../context/ToastContext';
 import { api } from '../../services/api';
 import { RegistrationToken } from '../../types';
@@ -79,77 +80,76 @@ export const OperatorTokensPage: React.FC = () => {
         </span>
       </div>
 
-      {loading ? (
-        <LoadingSpinner text="Memuat daftar token..." />
-      ) : tokens.length === 0 ? (
-        <EmptyState
-          icon={<Key size={36} />}
-          title="Tidak Ada Token Aktif"
-          description="Saat ini belum ada token yang dibuat oleh administrator."
-        />
-      ) : (
-        <div className="table-responsive">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Kode Token</th>
-                <th>Calon Penerima / Nama Warga</th>
-                <th>Peruntukan Role</th>
-                <th>Status</th>
-                <th>Keterangan / Catatan</th>
-                <th>Tanggal Dibuat</th>
-                <th>Salin</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tokens.map((t) => (
-                <tr key={t.id} className="row-hover-highlight">
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: 14, color: 'var(--primary-700)' }}>
-                        {t.token}
-                      </span>
-                    </div>
-                  </td>
-                  <td>
-                    <div style={{ fontWeight: 600 }}>{t.recipient_name || 'Umum'}</div>
-                  </td>
-                  <td>
-                    <Badge variant={t.target_role === 'operator' ? 'info' : 'neutral'}>
-                      {t.target_role === 'operator' ? 'Operator' : 'Pelanggan'}
-                    </Badge>
-                  </td>
-                  <td>
-                    {t.is_used ? (
-                      <Badge variant="success">
-                        <CheckCircle2 size={11} style={{ marginRight: 3 }} /> Terpakai ({t.used_by_username})
-                      </Badge>
-                    ) : (
-                      <Badge variant="warning">
-                        <Key size={11} style={{ marginRight: 3 }} /> Aktif (Siap Pakai)
-                      </Badge>
-                    )}
-                  </td>
-                  <td style={{ fontSize: 12.5, color: 'var(--slate-600)' }}>
-                    {t.notes || '-'}
-                  </td>
-                  <td>{formatDateTime(t.created_at || '')}</td>
-                  <td>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      icon={<Copy size={13} />}
-                      onClick={() => handleCopy(t.token)}
-                    >
-                      Salin Token
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <DataTable
+        columns={[
+          {
+            header: 'Kode Token',
+            render: (t: RegistrationToken) => (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: 13.5, color: 'var(--primary-700)' }}>
+                  {t.token}
+                </span>
+              </div>
+            )
+          },
+          {
+            header: 'Calon Penerima',
+            render: (t: RegistrationToken) => (
+              <div style={{ fontWeight: 600 }}>{t.recipient_name || 'Umum'}</div>
+            )
+          },
+          {
+            header: 'Peruntukan Role',
+            render: (t: RegistrationToken) => (
+              <Badge variant={t.target_role === 'operator' ? 'info' : 'neutral'}>
+                {t.target_role === 'operator' ? 'Operator' : 'Pelanggan'}
+              </Badge>
+            )
+          },
+          {
+            header: 'Status',
+            render: (t: RegistrationToken) => (
+              t.is_used ? (
+                <Badge variant="success">
+                  <CheckCircle2 size={11} style={{ marginRight: 3 }} /> Terpakai ({t.used_by_username})
+                </Badge>
+              ) : (
+                <Badge variant="warning">
+                  <Key size={11} style={{ marginRight: 3 }} /> Aktif (Siap Pakai)
+                </Badge>
+              )
+            )
+          },
+          {
+            header: 'Keterangan',
+            render: (t: RegistrationToken) => (
+              <span style={{ fontSize: 12, color: 'var(--slate-600)' }}>{t.notes || '-'}</span>
+            )
+          },
+          {
+            header: 'Tanggal Dibuat',
+            render: (t: RegistrationToken) => formatDateTime(t.created_at || '')
+          },
+          {
+            header: 'Salin',
+            align: 'right' as const,
+            render: (t: RegistrationToken) => (
+              <Button
+                size="sm"
+                variant="secondary"
+                icon={<Copy size={13} />}
+                onClick={() => handleCopy(t.token)}
+              >
+                Salin Token
+              </Button>
+            )
+          }
+        ]}
+        data={tokens}
+        loading={loading}
+        emptyTitle="Tidak Ada Token Aktif"
+        emptyMessage="Saat ini belum ada token yang dibuat oleh administrator."
+      />
     </div>
   );
 };

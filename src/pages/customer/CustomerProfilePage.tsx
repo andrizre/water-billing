@@ -84,7 +84,7 @@ export const CustomerProfilePage: React.FC = () => {
         subtitle="Informasi identitas sambungan air rumah Anda dan pengaturan kata sandi login."
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 24 }}>
+      <div className="responsive-grid-2">
         {/* Customer Data Details Card */}
         <Card title="Data Pelanggan & Meteran Air">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -106,7 +106,7 @@ export const CustomerProfilePage: React.FC = () => {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div className="form-grid-2">
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--slate-400)' }}>
                   WILAYAH RT / RW

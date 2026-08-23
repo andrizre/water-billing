@@ -137,7 +137,7 @@ export const PaymentEntryPage: React.FC = () => {
         subtitle="Pencatatan pembayaran tagihan warga secara langsung, kalkulator kembalian uang tunai, dan cetak kuitansi."
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 24 }}>
+      <div className="responsive-grid-2">
         {/* Left Side: Select Unpaid Bill List */}
         <Card title="Pilih Tagihan Pelanggan">
           <Input
@@ -234,7 +234,7 @@ export const PaymentEntryPage: React.FC = () => {
                 <div style={{ fontSize: 12, color: 'var(--slate-600)', marginTop: 2 }}>
                   Periode: <strong>{formatPeriod(selectedBill.period_month, selectedBill.period_year)}</strong> | Pakai: {formatM3(selectedBill.usage_m3)}
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 8, borderTop: '1px dashed var(--slate-200)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 8, borderTop: '1px dashed var(--slate-200)', flexWrap: 'wrap', gap: 4 }}>
                   <span style={{ fontSize: 13, fontWeight: 600 }}>Total Tagihan Tertunggak:</span>
                   <span style={{ fontSize: 17, fontWeight: 800, color: 'var(--danger-700)' }}>
                     {formatRupiah(dueAmount)}
@@ -242,7 +242,7 @@ export const PaymentEntryPage: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <div className="form-grid-2">
                 <Input
                   type="number"
                   label="Jumlah yang Dibayar (Rp)"
@@ -266,13 +266,11 @@ export const PaymentEntryPage: React.FC = () => {
               {/* QRIS Display for Cashier Counter */}
               {paymentMethod === 'QRIS' && (
                 <div
+                  className="qris-card-wrapper"
                   style={{
                     backgroundColor: 'var(--primary-50)',
-                    padding: 16,
-                    borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--primary-200)',
-                    margin: '12px 0',
-                    textAlign: 'center'
+                    borderColor: 'var(--primary-200)',
+                    margin: '12px 0'
                   }}
                 >
                   <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary-900)', display: 'block', marginBottom: 8 }}>
@@ -281,7 +279,7 @@ export const PaymentEntryPage: React.FC = () => {
                   <img
                     src={settings.qris_image_url || 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=BUMDes%20Tirta%20Sandmosquito%20Water%20Billing'}
                     alt="Barcode QRIS Kasir"
-                    style={{ width: 150, height: 150, objectFit: 'contain', margin: '0 auto', display: 'block', borderRadius: 8, border: '1px solid var(--slate-300)', backgroundColor: '#ffffff', padding: 6 }}
+                    className="qris-image-responsive"
                   />
                   <span style={{ fontSize: 12, color: 'var(--slate-600)', marginTop: 6, display: 'block' }}>
                     {settings.qris_info || 'Tersedia di loket kantor desa atau scan barcode resmi'}
@@ -299,7 +297,7 @@ export const PaymentEntryPage: React.FC = () => {
                     margin: '12px 0'
                   }}
                 >
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                  <div className="form-grid-2">
                     <Input
                       type="number"
                       label="Uang Tunai Diterima (Rp)"

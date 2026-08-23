@@ -21,6 +21,7 @@ import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { UsageBarChart } from '../../components/charts/UsageBarChart';
+import { DataTable } from '../../components/common/DataTable';
 import { BillInvoiceModal } from '../../components/print/BillInvoicePrint';
 import { PaymentReceiptModal } from '../../components/print/PaymentReceiptPrint';
 import { AnnouncementBanner } from '../../components/common/AnnouncementBanner';
@@ -220,7 +221,7 @@ export const CustomerDashboard: React.FC = () => {
       </div>
 
       {/* Usage Chart & Payment Details Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 20, marginBottom: 24 }}>
+      <div className="responsive-grid-2" style={{ marginBottom: 24 }}>
         {/* Usage Bar Chart */}
         <Card
           title="Grafik Pemakaian Air (6 Bulan Terakhir)"
@@ -250,14 +251,16 @@ export const CustomerDashboard: React.FC = () => {
             </div>
 
             {/* QRIS Display */}
-            <div style={{ marginTop: 8, padding: 12, backgroundColor: 'var(--slate-50)', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)', textAlign: 'center' }}>
-              <div style={{ fontWeight: 700, color: 'var(--slate-900)', marginBottom: 6 }}>3. Scan QRIS Resmi Desa</div>
+            <div className="qris-card-wrapper" style={{ marginTop: 8 }}>
+              <div style={{ fontWeight: 700, color: 'var(--slate-900)', marginBottom: 8 }}>3. Scan QRIS Resmi Desa</div>
               <img
                 src={settings.qris_image_url || 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=BUMDes%20Tirta%20Sandmosquito%20Water%20Billing'}
                 alt="QRIS BUMDes"
-                style={{ width: 130, height: 130, margin: '0 auto', display: 'block', borderRadius: 8, border: '1px solid var(--slate-200)', backgroundColor: '#fff', padding: 4 }}
+                className="qris-image-responsive"
               />
-              <div style={{ fontSize: 11, color: 'var(--slate-500)', marginTop: 4 }}>{settings.qris_info || 'QRIS Resmi BUMDes Tirta Sandmosquito'}</div>
+              <div style={{ fontSize: 11.5, color: 'var(--slate-600)', marginTop: 6, fontWeight: 500 }}>
+                {settings.qris_info || 'QRIS Resmi BUMDes Tirta Sandmosquito'}
+              </div>
             </div>
 
             {/* WhatsApp Confirmation Link */}
@@ -305,54 +308,56 @@ export const CustomerDashboard: React.FC = () => {
           </Link>
         }
       >
-        <div className="table-responsive">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>No. Bukti Kuitansi</th>
-                <th>Tanggal Bayar</th>
-                <th>Periode Rekening</th>
-                <th>Metode</th>
-                <th>Jumlah Lunas</th>
-                <th>Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recent_payments.length === 0 ? (
-                <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: 24, color: 'var(--slate-400)' }}>
-                    Belum ada riwayat pembayaran yang tercatat.
-                  </td>
-                </tr>
-              ) : (
-                recent_payments.map((p) => (
-                  <tr key={p.id} className="row-hover-highlight">
-                    <td style={{ fontWeight: 700 }}>{p.payment_no}</td>
-                    <td>{formatDateTime(p.payment_date || p.created_at)}</td>
-                    <td>{p.period_month && p.period_year ? formatPeriod(p.period_month, p.period_year) : '-'}</td>
-                    <td><Badge variant="neutral">{p.payment_method}</Badge></td>
-                    <td style={{ fontWeight: 800, color: 'var(--success-700)' }}>
-                      {formatRupiah(p.amount_paid)}
-                    </td>
-                    <td>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        icon={<Printer size={13} />}
-                        onClick={() => {
-                          setSelectedPayment(p);
-                          setReceiptModalOpen(true);
-                        }}
-                      >
-                        Kuitansi
-                      </Button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          columns={[
+            {
+              header: 'No. Kuitansi',
+              render: (p: Payment) => (
+                <span style={{ fontWeight: 700, color: 'var(--primary-700)' }}>{p.payment_no}</span>
+              )
+            },
+            {
+              header: 'Tanggal Bayar',
+              render: (p: Payment) => formatDateTime(p.payment_date || p.created_at)
+            },
+            {
+              header: 'Periode Tagihan',
+              render: (p: Payment) => p.period_month && p.period_year ? formatPeriod(p.period_month, p.period_year) : '-'
+            },
+            {
+              header: 'Metode',
+              render: (p: Payment) => <Badge variant="neutral">{p.payment_method}</Badge>
+            },
+            {
+              header: 'Jumlah Lunas',
+              render: (p: Payment) => (
+                <span style={{ fontWeight: 800, color: 'var(--success-700)' }}>
+                  {formatRupiah(p.amount_paid)}
+                </span>
+              )
+            },
+            {
+              header: 'Aksi',
+              align: 'right' as const,
+              render: (p: Payment) => (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  icon={<Printer size={13} />}
+                  onClick={() => {
+                    setSelectedPayment(p);
+                    setReceiptModalOpen(true);
+                  }}
+                >
+                  Kuitansi
+                </Button>
+              )
+            }
+          ]}
+          data={recent_payments}
+          emptyTitle="Belum Ada Pembayaran"
+          emptyMessage="Belum ada riwayat pembayaran yang tercatat."
+        />
       </Card>
 
       <BillInvoiceModal

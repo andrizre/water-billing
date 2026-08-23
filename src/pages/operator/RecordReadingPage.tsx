@@ -187,7 +187,7 @@ export const RecordReadingPage: React.FC = () => {
         subtitle="Input angka pembacaan meter fisik air di lapangan dengan kalkulasi volume kubikasi otomatis."
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 24, marginBottom: 24 }}>
+      <div className="responsive-grid-2" style={{ marginBottom: 24 }}>
         {/* Input Form Card */}
         <Card
           title={
@@ -209,7 +209,7 @@ export const RecordReadingPage: React.FC = () => {
               required
             />
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div className="form-grid-2">
               <Select
                 label="Periode Bulan"
                 options={INDONESIAN_MONTHS.map((m, idx) => ({ label: m, value: String(idx + 1) }))}
@@ -230,10 +230,8 @@ export const RecordReadingPage: React.FC = () => {
             </div>
 
             <div
+              className="form-grid-2"
               style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: 14,
                 backgroundColor: 'var(--slate-50)',
                 padding: 14,
                 borderRadius: 'var(--radius-md)',

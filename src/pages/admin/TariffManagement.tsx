@@ -316,7 +316,7 @@ export const TariffManagement: React.FC = () => {
         }
       >
         <form onSubmit={handleFormSubmit}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div className="form-grid-2">
             <Input
               label="Kode Tarif"
               placeholder="Contoh: R1-DESA"
@@ -333,7 +333,7 @@ export const TariffManagement: React.FC = () => {
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div className="form-grid-2">
             <Select
               label="Kategori"
               options={[
@@ -367,7 +367,7 @@ export const TariffManagement: React.FC = () => {
               Konfigurasi Batas & Tarif Tiap Tier (Per m³)
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 10 }}>
+            <div className="form-grid-2" style={{ marginBottom: 10 }}>
               <Input
                 type="number"
                 label="Batas Maks Tier 1 (m³)"
@@ -382,7 +382,7 @@ export const TariffManagement: React.FC = () => {
               />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 10 }}>
+            <div className="form-grid-2" style={{ marginBottom: 10 }}>
               <Input
                 type="number"
                 label="Batas Maks Tier 2 (m³)"
@@ -397,7 +397,7 @@ export const TariffManagement: React.FC = () => {
               />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="form-grid-2">
               <Input
                 type="number"
                 label="Tarif Tier 3 (Di atas Tier 2) (Rp/m³)"
