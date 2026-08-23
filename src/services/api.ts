@@ -230,7 +230,7 @@ async function handleSupabaseCall<T = any>(action: string, data: any): Promise<T
     case 'tokens_delete':
       return (await supabaseApiService.deleteRegistrationToken(data.id)) as T;
     case 'tokens_verify':
-      return (await supabaseApiService.verifyRegistrationToken(data.token)) as T;
+      return (await supabaseApiService.verifyRegistrationToken(data.token, data.expectedType)) as T;
     case 'auth_register':
       return (await supabaseApiService.registerWithToken(data)) as T;
 
@@ -453,7 +453,7 @@ async function handleMockCall<T = any>(action: string, data: any): Promise<T> {
     case 'tokens_delete':
       return (await mockApiService.deleteRegistrationToken(data.id)) as T;
     case 'tokens_verify':
-      return (await mockApiService.verifyRegistrationToken(data.token)) as T;
+      return (await mockApiService.verifyRegistrationToken(data.token, data.expectedType)) as T;
     case 'auth_register':
       return (await mockApiService.registerWithToken(data)) as T;
 
@@ -548,7 +548,7 @@ export const api = {
   getRegistrationTokens: () => callApi('tokens_list'),
   createRegistrationToken: (data: any) => callApi('tokens_create', data),
   deleteRegistrationToken: (id: string) => callApi('tokens_delete', { id }),
-  verifyRegistrationToken: (token: string) => callApi('tokens_verify', { token }),
+  verifyRegistrationToken: (token: string, expectedType: string = 'registration') => callApi('tokens_verify', { token, expectedType }),
   registerWithToken: (data: any) => callApi('auth_register', data),
 
   // Reset demo

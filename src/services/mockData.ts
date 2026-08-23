@@ -693,6 +693,7 @@ export const initialRegistrationTokens: RegistrationToken[] = [
   {
     id: 'TOK-001',
     token: 'DESA-AIR-2026',
+    token_type: 'registration',
     recipient_name: 'Warga Baru Dusun Krajan',
     target_role: 'customer',
     default_tariff_id: 'TRF-01',
@@ -703,6 +704,7 @@ export const initialRegistrationTokens: RegistrationToken[] = [
   {
     id: 'TOK-002',
     token: 'WARGA-MANDIRI-88',
+    token_type: 'registration',
     recipient_name: 'Bpk. Ahmad Dahlan',
     target_role: 'customer',
     default_tariff_id: 'TRF-01',

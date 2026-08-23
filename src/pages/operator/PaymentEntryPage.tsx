@@ -13,6 +13,7 @@ import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { Select } from '../../components/common/Select';
 import { Badge } from '../../components/common/Badge';
+import { Modal } from '../../components/common/Modal';
 import { PaymentReceiptModal } from '../../components/print/PaymentReceiptPrint';
 import { useToast } from '../../context/ToastContext';
 import { useSettings } from '../../context/SettingsContext';
@@ -33,7 +34,8 @@ export const PaymentEntryPage: React.FC = () => {
   const [notes, setNotes] = useState<string>('');
   const [saving, setSaving] = useState<boolean>(false);
 
-  // Receipt Modal
+  // Receipt Modal & Confirmation Dialog
+  const [confirmModalOpen, setConfirmModalOpen] = useState<boolean>(false);
   const [receiptModalOpen, setReceiptModalOpen] = useState<boolean>(false);
   const [recordedPayment, setRecordedPayment] = useState<Payment | null>(null);
 
@@ -82,7 +84,7 @@ export const PaymentEntryPage: React.FC = () => {
   const tenderedNum = Number(cashTendered || 0);
   const changeAmount = Math.max(0, tenderedNum - payAmountNum);
 
-  const handleProcessPayment = async (e: React.FormEvent) => {
+  const handleOpenConfirm = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedBill) {
       toastError('Pilih tagihan terlebih dahulu.');
@@ -96,6 +98,11 @@ export const PaymentEntryPage: React.FC = () => {
       toastError('Uang tunai yang diterima kurang dari jumlah pembayaran.');
       return;
     }
+    setConfirmModalOpen(true);
+  };
+
+  const handleExecutePayment = async () => {
+    if (!selectedBill) return;
 
     setSaving(true);
     try {
@@ -107,6 +114,7 @@ export const PaymentEntryPage: React.FC = () => {
       });
 
       success(`Pembayaran ${selectedBill.customer_name} berhasil dicatat! Status: ${res.status}`);
+      setConfirmModalOpen(false);
 
       if (res.payment) {
         setRecordedPayment(res.payment);
@@ -206,7 +214,7 @@ export const PaymentEntryPage: React.FC = () => {
           }
         >
           {selectedBill ? (
-            <form onSubmit={handleProcessPayment}>
+            <form onSubmit={handleOpenConfirm}>
               {/* Selected Customer Banner */}
               <div
                 style={{
@@ -328,13 +336,13 @@ export const PaymentEntryPage: React.FC = () => {
               />
 
               <Button
-                type="submit"
+                type="button"
                 variant="success"
                 icon={<CheckCircle size={18} />}
-                loading={saving}
+                onClick={handleOpenConfirm}
                 style={{ width: '100%', padding: '14px', fontSize: 15, marginTop: 8 }}
               >
-                Terima Pembayaran & Cetak Kuitansi
+                Proses Pembayaran & Cetak Kuitansi
               </Button>
             </form>
           ) : (
@@ -344,6 +352,71 @@ export const PaymentEntryPage: React.FC = () => {
           )}
         </Card>
       </div>
+
+      {/* Confirmation Dialog Before Submitting Payment */}
+      {selectedBill && (
+        <Modal
+          isOpen={confirmModalOpen}
+          onClose={() => setConfirmModalOpen(false)}
+          title="Konfirmasi Transaksi Pembayaran Kasir"
+        >
+          <div style={{ padding: 14, backgroundColor: 'var(--slate-50)', borderRadius: 'var(--radius-md)', marginBottom: 16 }}>
+            <div style={{ fontSize: 12, color: 'var(--slate-500)' }}>Warga / Pelanggan:</div>
+            <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--slate-900)' }}>
+              {selectedBill.customer_name} ({selectedBill.customer_no})
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--slate-600)', marginTop: 2 }}>
+              No. Faktur: <strong>{selectedBill.bill_no}</strong> | Periode: {formatPeriod(selectedBill.period_month, selectedBill.period_year)}
+            </div>
+
+            <div style={{ marginTop: 14, borderTop: '1px dashed var(--slate-300)', paddingTop: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 13, color: 'var(--slate-600)' }}>Total Tagihan:</span>
+                <span style={{ fontSize: 14, fontWeight: 700 }}>{formatRupiah(dueAmount)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 13, color: 'var(--slate-600)' }}>Metode Bayar:</span>
+                <span style={{ fontSize: 13, fontWeight: 700 }}>{paymentMethod}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 13, color: 'var(--slate-600)' }}>Jumlah Dibayar:</span>
+                <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--primary-700)' }}>{formatRupiah(payAmountNum)}</span>
+              </div>
+              {paymentMethod === 'Tunai' && (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ fontSize: 13, color: 'var(--slate-600)' }}>Uang Diterima:</span>
+                    <span style={{ fontSize: 14, fontWeight: 700 }}>{formatRupiah(tenderedNum)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 6, borderTop: '1px solid var(--slate-200)' }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--success-800)' }}>Kembalian Uang:</span>
+                    <span style={{ fontSize: 17, fontWeight: 900, color: 'var(--success-700)' }}>{formatRupiah(changeAmount)}</span>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          <p style={{ fontSize: 13, color: 'var(--slate-600)', marginBottom: 16, textAlign: 'center' }}>
+            Pastikan uang pembayaran telah dihitung dengan benar sebelum mencatat transaksi.
+          </p>
+
+          <div className="modal-footer" style={{ padding: '14px 0 0 0' }}>
+            <Button variant="secondary" type="button" onClick={() => setConfirmModalOpen(false)}>
+              Batal / Periksa Lagi
+            </Button>
+            <Button
+              variant="success"
+              type="button"
+              icon={<CheckCircle size={16} />}
+              loading={saving}
+              onClick={handleExecutePayment}
+            >
+              Ya, Terima & Cetak Struk
+            </Button>
+          </div>
+        </Modal>
+      )}
 
       <PaymentReceiptModal
         isOpen={receiptModalOpen}

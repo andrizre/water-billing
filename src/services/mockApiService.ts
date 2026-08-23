@@ -1105,11 +1105,24 @@ export const mockApiService = {
         {
           id: 'TOK-001',
           token: 'DESA-AIR-2026',
+          token_type: 'registration',
           recipient_name: 'Warga Baru Dusun Krajan',
           target_role: 'customer',
           default_tariff_id: 'TRF-01',
           is_used: false,
           notes: 'Token pendaftaran umum warga',
+          created_at: nowTimeString()
+        },
+        {
+          id: 'TOK-RST-001',
+          token: 'RESET-BUDI-2026',
+          token_type: 'password_reset',
+          recipient_name: 'Bpk. Budi Santoso',
+          customer_id: 'CUST-ID-01',
+          customer_no: 'CUST-2026-0001',
+          target_role: 'customer',
+          is_used: false,
+          notes: 'Token reset sandi khusus Bpk Budi',
           created_at: nowTimeString()
         }
       ];
@@ -1123,11 +1136,14 @@ export const mockApiService = {
     if (!db.registrationTokens) db.registrationTokens = [];
     const id = `TOK-${Date.now().toString().slice(-6)}`;
     const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-    const token = data.token?.trim().toUpperCase() || `DESA-${randomSuffix}`;
+    const token = data.token?.trim().toUpperCase() || (data.token_type === 'password_reset' ? `RST-${randomSuffix}` : `DESA-${randomSuffix}`);
 
     const newTok: RegistrationToken = {
       id,
       token,
+      token_type: data.token_type || 'registration',
+      customer_id: data.customer_id || undefined,
+      customer_no: data.customer_no || undefined,
       recipient_name: data.recipient_name || '',
       target_role: data.target_role || 'customer',
       default_tariff_id: data.default_tariff_id || 'TRF-01',
@@ -1148,16 +1164,23 @@ export const mockApiService = {
     }
   },
 
-  async verifyRegistrationToken(tokenStr: string): Promise<any> {
+  async verifyRegistrationToken(tokenStr: string, expectedType: string = 'registration'): Promise<any> {
     const tokens = await this.getRegistrationTokens();
     const clean = tokenStr.trim().toUpperCase();
     const tok = tokens.find((t) => t.token === clean);
 
     if (!tok) {
-      throw new Error('Token pendaftaran tidak valid atau tidak ditemukan.');
+      throw new Error('Token tidak valid atau tidak ditemukan.');
     }
     if (tok.is_used) {
-      throw new Error('Token pendaftaran ini sudah pernah digunakan.');
+      throw new Error('Token ini sudah pernah digunakan.');
+    }
+    if (expectedType && tok.token_type && tok.token_type !== expectedType) {
+      if (expectedType === 'password_reset') {
+        throw new Error('Token yang Anda masukkan adalah Token Pendaftaran Akun, bukan Token Reset Password.');
+      } else {
+        throw new Error('Token yang Anda masukkan adalah Token Reset Password, bukan Token Pendaftaran Akun.');
+      }
     }
     return { valid: true, token: tok };
   },

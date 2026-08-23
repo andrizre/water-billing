@@ -49,12 +49,12 @@ export const ForgotPasswordPage: React.FC = () => {
 
     try {
       setLoading(true);
-      const res = await api.verifyRegistrationToken(tokenStr);
+      const res = await api.verifyRegistrationToken(tokenStr, 'password_reset');
       setVerifiedToken(res.token);
       setStep(2);
-      success('Token konfirmasi admin valid! Silakan lengkapi data verifikasi akun Anda.');
+      success('Token konfirmasi reset password valid! Silakan lengkapi data verifikasi akun Anda.');
     } catch (err: any) {
-      toastError(err.message || 'Token tidak valid atau belum dibuat oleh admin.');
+      toastError(err.message || 'Token tidak valid atau bukan token reset password.');
     } finally {
       setLoading(false);
     }

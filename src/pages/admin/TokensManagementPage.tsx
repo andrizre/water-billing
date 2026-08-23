@@ -23,6 +23,7 @@ export const TokensManagementPage: React.FC = () => {
   const [submitting, setSubmitting] = useState<boolean>(false);
 
   // Form states
+  const [tokenType, setTokenType] = useState<'registration' | 'password_reset'>('registration');
   const [customToken, setCustomToken] = useState<string>('');
   const [recipientName, setRecipientName] = useState<string>('');
   const [targetRole, setTargetRole] = useState<'customer' | 'operator'>('customer');
@@ -58,15 +59,22 @@ export const TokensManagementPage: React.FC = () => {
       setSubmitting(true);
       await api.createRegistrationToken({
         token: customToken,
+        token_type: tokenType,
         recipient_name: recipientName,
         target_role: targetRole,
         default_tariff_id: defaultTariffId,
         notes
       });
-      showToast('Token pendaftaran berhasil dibuat!', 'success');
+      showToast(
+        tokenType === 'password_reset'
+          ? 'Token reset password berhasil dibuat!'
+          : 'Token pendaftaran berhasil dibuat!',
+        'success'
+      );
       setCustomToken('');
       setRecipientName('');
       setNotes('');
+      setTokenType('registration');
       setModalOpen(false);
       fetchTokens();
     } catch (err: any) {
@@ -123,6 +131,7 @@ export const TokensManagementPage: React.FC = () => {
             <thead>
               <tr>
                 <th>Kode Token</th>
+                <th>Tipe Token</th>
                 <th>Calon Penerima / Nama Warga</th>
                 <th>Peruntukan Role</th>
                 <th>Status</th>
@@ -136,7 +145,7 @@ export const TokensManagementPage: React.FC = () => {
                 <tr key={t.id} className="row-hover-highlight">
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: 14, color: 'var(--primary-700)' }}>
+                      <span style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: 14, color: t.token_type === 'password_reset' ? 'var(--danger-700)' : 'var(--primary-700)' }}>
                         {t.token}
                       </span>
                       <button
@@ -148,6 +157,11 @@ export const TokensManagementPage: React.FC = () => {
                         <Copy size={13} />
                       </button>
                     </div>
+                  </td>
+                  <td>
+                    <Badge variant={t.token_type === 'password_reset' ? 'danger' : 'info'}>
+                      {t.token_type === 'password_reset' ? 'Reset Password' : 'Registrasi Akun'}
+                    </Badge>
                   </td>
                   <td>
                     <div style={{ fontWeight: 600 }}>{t.recipient_name || 'Umum'}</div>
@@ -193,27 +207,38 @@ export const TokensManagementPage: React.FC = () => {
       <Modal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        title="Buat Token Pendaftaran Baru"
+        title="Buat Token Baru (Registrasi / Reset Sandi)"
       >
         <form onSubmit={handleCreateToken}>
-          <Input
-            label="Kode Token Kustom (Kosongkan untuk acak otomatis)"
-            placeholder="Contoh: WARGA-RT01-001 (Opsional)"
-            value={customToken}
-            onChange={(e) => setCustomToken(e.target.value.toUpperCase())}
-            hint="Jika dikosongkan, sistem akan membuatkan kode token acak seperti DESA-A8F2."
+          <Select
+            label="Tipe / Peruntukan Token"
+            value={tokenType}
+            onChange={(e) => setTokenType(e.target.value as any)}
+            options={[
+              { value: 'registration', label: '1. Token Pendaftaran Akun Pelanggan Baru' },
+              { value: 'password_reset', label: '2. Token Khusus Reset / Lupa Kata Sandi' },
+            ]}
+            required
           />
 
           <Input
-            label="Nama Calon Penerima Token (Warga/Pelanggan)"
-            placeholder="Contoh: Bpk. Ahmad Dahlan"
+            label="Kode Token Kustom (Kosongkan untuk acak otomatis)"
+            placeholder={tokenType === 'password_reset' ? 'Contoh: RESET-BUDI-2026' : 'Contoh: WARGA-RT01-001'}
+            value={customToken}
+            onChange={(e) => setCustomToken(e.target.value.toUpperCase())}
+            hint={tokenType === 'password_reset' ? 'Otomatis membuat kode seperti RST-88F2 jika dikosongkan.' : 'Otomatis membuat kode seperti DESA-A8F2 jika dikosongkan.'}
+          />
+
+          <Input
+            label={tokenType === 'password_reset' ? 'Nama Pelanggan Yang Meminta Reset' : 'Nama Calon Penerima Token (Warga/Pelanggan)'}
+            placeholder="Contoh: Bpk. Budi Santoso"
             value={recipientName}
             onChange={(e) => setRecipientName(e.target.value)}
           />
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             <Select
-              label="Role Akun Yang Didaftarkan"
+              label="Role Akun Yang Dituju"
               value={targetRole}
               onChange={(e) => setTargetRole(e.target.value as any)}
               options={[
@@ -223,12 +248,20 @@ export const TokensManagementPage: React.FC = () => {
               required
             />
 
-            <Select
-              label="Tarif Bawaan Pelanggan"
-              value={defaultTariffId}
-              onChange={(e) => setDefaultTariffId(e.target.value)}
-              options={tariffs.map((t) => ({ value: t.id, label: t.name }))}
-            />
+            {tokenType === 'registration' ? (
+              <Select
+                label="Tarif Bawaan Pelanggan"
+                value={defaultTariffId}
+                onChange={(e) => setDefaultTariffId(e.target.value)}
+                options={tariffs.map((t) => ({ value: t.id, label: t.name }))}
+              />
+            ) : (
+              <Input
+                label="Keperluan Token"
+                value="Reset Password Warga"
+                disabled
+              />
+            )}
           </div>
 
           <Input

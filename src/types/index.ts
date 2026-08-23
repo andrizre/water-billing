@@ -225,10 +225,15 @@ export interface SubscriptionRequest {
   updated_at?: string;
 }
 
-// 4. Token Pendaftaran (Undangan Admin)
+// 4. Token Pendaftaran & Reset Sandi (Undangan Admin)
+export type TokenType = 'registration' | 'password_reset';
+
 export interface RegistrationToken {
   id: string;
   token: string;
+  token_type: TokenType;
+  customer_id?: string;
+  customer_no?: string;
   recipient_name?: string;
   target_role: 'customer' | 'operator';
   default_tariff_id?: string;

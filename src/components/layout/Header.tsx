@@ -86,26 +86,27 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
           <Menu size={22} />
         </button>
 
-        <div className="header-title-badge" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="header-title-badge">
           <Link
             to="/cek-tagihan"
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: 6,
-              fontSize: 12.5,
+              fontSize: 12,
               fontWeight: 600,
               backgroundColor: 'var(--primary-50)',
               color: 'var(--primary-700)',
-              padding: '5px 12px',
+              padding: '5px 10px',
               borderRadius: 9999,
               border: '1px solid var(--primary-200)',
               transition: 'all 0.2s ease',
+              whiteSpace: 'nowrap',
             }}
             className="hover-lift"
           >
-            <Search size={14} />
-            <span>Cek Tagihan Warga (Publik)</span>
+            <Search size={13} />
+            <span className="desktop-text-only">Cek Tagihan Warga</span>
           </Link>
 
           {/* Dynamic Backend Status Indicator */}
@@ -114,23 +115,24 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 6,
-              fontSize: 11.5,
+              gap: 5,
+              fontSize: 11,
               fontWeight: 600,
               backgroundColor: badgeInfo.bgColor,
               color: badgeInfo.textColor,
-              padding: '4px 10px',
+              padding: '3px 8px',
               borderRadius: 9999,
               border: `1px solid ${badgeInfo.borderColor}`,
               cursor: 'default',
               userSelect: 'none',
               transition: 'all 0.3s ease',
+              whiteSpace: 'nowrap',
             }}
           >
             <span
               style={{
-                width: 7,
-                height: 7,
+                width: 6,
+                height: 6,
                 borderRadius: '50%',
                 backgroundColor: badgeInfo.dotColor,
                 display: 'inline-block',

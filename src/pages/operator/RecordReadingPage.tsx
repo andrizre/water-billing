@@ -13,6 +13,7 @@ import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { Select } from '../../components/common/Select';
+import { Modal } from '../../components/common/Modal';
 import { DataTable } from '../../components/common/DataTable';
 import { Pagination } from '../../components/common/Pagination';
 import { usePagination } from '../../hooks/usePagination';
@@ -92,10 +93,11 @@ export const RecordReadingPage: React.FC = () => {
     loadPrev();
   }, [selectedCustomerId]);
 
+  const [confirmModalOpen, setConfirmModalOpen] = useState<boolean>(false);
   const curVal = Number(currentReading || 0);
   const calculatedUsage = Math.max(0, curVal - prevReading);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleOpenConfirm = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCustomerId) {
       toastError('Pilih pelanggan terlebih dahulu.');
@@ -105,7 +107,10 @@ export const RecordReadingPage: React.FC = () => {
       toastError(`Angka meter (${curVal}) tidak boleh lebih kecil dari meter sebelumnya (${prevReading}).`);
       return;
     }
+    setConfirmModalOpen(true);
+  };
 
+  const handleExecuteRecord = async () => {
     setSaving(true);
     try {
       await api.recordReading({
@@ -119,6 +124,7 @@ export const RecordReadingPage: React.FC = () => {
       });
 
       success(`Pencatatan meter berhasil! Pemakaian: ${calculatedUsage} m³.`);
+      setConfirmModalOpen(false);
       fetchReadings();
       setNotes('');
     } catch (err: any) {
@@ -191,7 +197,7 @@ export const RecordReadingPage: React.FC = () => {
             </div>
           }
         >
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleOpenConfirm}>
             <Select
               label="Pilih Pelanggan Air"
               options={customers.map((c) => ({
@@ -304,11 +310,68 @@ export const RecordReadingPage: React.FC = () => {
               </label>
             </div>
 
-            <Button type="submit" variant="primary" icon={<CheckCircle2 size={16} />} loading={saving} style={{ width: '100%', padding: '12px' }}>
+            <Button
+              type="button"
+              variant="primary"
+              icon={<CheckCircle2 size={16} />}
+              onClick={handleOpenConfirm}
+              style={{ width: '100%', padding: '12px' }}
+            >
               Simpan Pencatatan Meter
             </Button>
           </form>
         </Card>
+
+        {/* Confirmation Modal */}
+        <Modal
+          isOpen={confirmModalOpen}
+          onClose={() => setConfirmModalOpen(false)}
+          title="Konfirmasi Pencatatan Angka Meter"
+        >
+          <div style={{ padding: 14, backgroundColor: 'var(--slate-50)', borderRadius: 'var(--radius-md)', marginBottom: 16 }}>
+            <div style={{ fontSize: 12, color: 'var(--slate-500)' }}>Nama Pelanggan:</div>
+            <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--slate-900)' }}>
+              {customerMeta?.customer_name || 'Pelanggan'} ({customerMeta?.customer_no || '-'})
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--slate-600)', marginTop: 2 }}>
+              Periode: <strong>{INDONESIAN_MONTHS[Number(periodMonth) - 1]} {periodYear}</strong> | No. Meter: {customerMeta?.meter_no || '-'}
+            </div>
+
+            <div style={{ marginTop: 12, borderTop: '1px dashed var(--slate-300)', paddingTop: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 13, color: 'var(--slate-600)' }}>Angka Meter Sebelumnya:</span>
+                <span style={{ fontSize: 14, fontWeight: 700 }}>{prevReading} m³</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 13, color: 'var(--slate-600)' }}>Angka Meter Sekarang:</span>
+                <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--primary-700)' }}>{curVal} m³</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 6, borderTop: '1px solid var(--slate-200)' }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary-800)' }}>Total Pemakaian Air:</span>
+                <span style={{ fontSize: 18, fontWeight: 900, color: 'var(--primary-700)' }}>{formatM3(calculatedUsage)}</span>
+              </div>
+            </div>
+          </div>
+
+          <p style={{ fontSize: 13, color: 'var(--slate-600)', textAlign: 'center', marginBottom: 16 }}>
+            Pastikan angka meteran yang dicatat sudah sesuai dengan kondisi fisik meter air pelanggan.
+          </p>
+
+          <div className="modal-footer" style={{ padding: '14px 0 0 0' }}>
+            <Button variant="secondary" type="button" onClick={() => setConfirmModalOpen(false)}>
+              Batal / Koreksi
+            </Button>
+            <Button
+              variant="primary"
+              type="button"
+              icon={<CheckCircle2 size={16} />}
+              loading={saving}
+              onClick={handleExecuteRecord}
+            >
+              Ya, Simpan Angka Meter
+            </Button>
+          </div>
+        </Modal>
 
         {/* Info & Helper Card */}
         <Card title="Petunjuk Pencatatan Lapangan">

@@ -1179,11 +1179,14 @@ export const supabaseApiService = {
     const sb = supabase();
     const id = `TOK-${Date.now().toString().slice(-6)}`;
     const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-    const token = data.token?.trim().toUpperCase() || `DESA-${randomSuffix}`;
+    const token = data.token?.trim().toUpperCase() || (data.token_type === 'password_reset' ? `RST-${randomSuffix}` : `DESA-${randomSuffix}`);
 
     const newTok: any = {
       id,
       token,
+      token_type: data.token_type || 'registration',
+      customer_id: data.customer_id || null,
+      customer_no: data.customer_no || null,
       recipient_name: data.recipient_name || '',
       target_role: data.target_role || 'customer',
       default_tariff_id: data.default_tariff_id || 'TRF-01',
@@ -1201,7 +1204,7 @@ export const supabaseApiService = {
     if (error) throw new Error(error.message);
   },
 
-  async verifyRegistrationToken(tokenStr: string): Promise<any> {
+  async verifyRegistrationToken(tokenStr: string, expectedType: string = 'registration'): Promise<any> {
     const sb = supabase();
     const cleanToken = tokenStr.trim().toUpperCase();
 
@@ -1212,11 +1215,19 @@ export const supabaseApiService = {
       .maybeSingle();
 
     if (!tok || error) {
-      throw new Error('Token pendaftaran tidak valid atau tidak ditemukan.');
+      throw new Error('Token tidak valid atau tidak ditemukan.');
     }
 
     if (tok.is_used) {
-      throw new Error('Token pendaftaran ini sudah pernah digunakan.');
+      throw new Error('Token ini sudah pernah digunakan.');
+    }
+
+    if (expectedType && tok.token_type && tok.token_type !== expectedType) {
+      if (expectedType === 'password_reset') {
+        throw new Error('Token yang Anda masukkan adalah Token Pendaftaran Akun, bukan Token Reset Password.');
+      } else {
+        throw new Error('Token yang Anda masukkan adalah Token Reset Password, bukan Token Pendaftaran Akun.');
+      }
     }
 
     return { valid: true, token: tok };

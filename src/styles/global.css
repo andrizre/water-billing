@@ -9,6 +9,7 @@
 
 html, body {
   height: 100%;
+  overflow-x: hidden;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
   background-color: var(--slate-50);
   color: var(--slate-800);
@@ -458,6 +459,10 @@ button {
 @media (max-width: 480px) {
   .top-header {
     padding: 0 8px;
+  }
+
+  .desktop-text-only {
+    display: none !important;
   }
 
   .header-title-badge a span {
