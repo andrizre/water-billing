@@ -17,7 +17,8 @@ import {
   SystemSettings,
   AuditLog,
   AdminDashboardData,
-  CustomerDashboardData
+  CustomerDashboardData,
+  MaintenanceExpense
 } from '../types';
 
 function supabase() {
@@ -488,6 +489,7 @@ export const supabaseApiService = {
       reading_date: data.reading_date || new Date().toISOString().substring(0, 10),
       reader_name: 'Petugas Lapangan',
       notes: data.notes || '',
+      photo_url: data.photo_url || '',
     };
 
     await sb.from('meter_readings').insert(newReading);
@@ -501,8 +503,10 @@ export const supabaseApiService = {
     let generatedBill: Bill | null = null;
     if (data.auto_generate_bill) {
       const { data: tariffs } = await sb.from('tariffs').select('*');
+      const { data: settingAdmin } = await sb.from('settings').select('value').eq('key', 'admin_fee_flat').maybeSingle();
+      const adminFee = Number(settingAdmin?.value || 2500);
       const tariff = (tariffs || []).find((t: any) => t.id === customer.tariff_id) || (tariffs || [])[0];
-      const calc = calculateTieredBillBreakdown(usage, tariff);
+      const calc = calculateTieredBillBreakdown(usage, tariff, false, adminFee);
       const billId = `BILL-${year}${String(month).padStart(2, '0')}-${Date.now().toString().slice(-4)}`;
 
       generatedBill = {
@@ -522,6 +526,7 @@ export const supabaseApiService = {
         base_amount: calc.base_fee,
         usage_amount: calc.usage_amount,
         late_fee: 0,
+        admin_fee: adminFee,
         total_amount: calc.total_amount,
         paid_amount: 0,
         balance_due: calc.total_amount,
@@ -627,6 +632,9 @@ export const supabaseApiService = {
     let generatedCount = 0;
     const newBills: any[] = [];
 
+    const { data: settingAdmin } = await sb.from('settings').select('value').eq('key', 'admin_fee_flat').maybeSingle();
+    const adminFee = Number(settingAdmin?.value || 2500);
+
     for (const cust of customers || []) {
       if (existingBillCustomerIds.has(cust.id)) continue;
 
@@ -636,7 +644,7 @@ export const supabaseApiService = {
       if (!reading) continue;
 
       const tariff = (tariffs || []).find((t: any) => t.id === cust.tariff_id) || (tariffs || [])[0];
-      const calc = calculateTieredBillBreakdown(reading.usage_m3, tariff);
+      const calc = calculateTieredBillBreakdown(reading.usage_m3, tariff, false, adminFee);
       const billId = `BILL-${periodYear}${String(periodMonth).padStart(2, '0')}-${Date.now().toString().slice(-4)}-${generatedCount}`;
 
       newBills.push({
@@ -656,6 +664,7 @@ export const supabaseApiService = {
         base_amount: calc.base_fee,
         usage_amount: calc.usage_amount,
         late_fee: 0,
+        admin_fee: adminFee,
         total_amount: calc.total_amount,
         paid_amount: 0,
         balance_due: calc.total_amount,
@@ -1322,4 +1331,63 @@ export const supabaseApiService = {
       message: 'Registrasi berhasil! Silakan masuk dengan akun baru Anda.',
     };
   },
+
+  // 17. MAINTENANCE & EXPENSES
+  async getMaintenanceExpenses(params?: { category?: string; start_date?: string; end_date?: string }): Promise<MaintenanceExpense[]> {
+    const sb = supabase();
+    let query = sb.from('maintenance_expenses').select('*');
+
+    if (params?.category) {
+      query = query.eq('category', params.category);
+    }
+    if (params?.start_date) {
+      query = query.gte('expense_date', params.start_date);
+    }
+    if (params?.end_date) {
+      query = query.lte('expense_date', params.end_date);
+    }
+
+    const { data, error } = await query.order('expense_date', { ascending: false });
+    if (error) {
+      console.warn('Gagal memuat maintenance_expenses dari Supabase (kemungkinan tabel belum dibuat):', error);
+      return [];
+    }
+    return (data || []).map((e: any) => ({
+      ...e,
+      amount: Number(e.amount || 0),
+    }));
+  },
+
+  async createMaintenanceExpense(data: Partial<MaintenanceExpense>): Promise<MaintenanceExpense> {
+    const sb = supabase();
+    const count = Math.floor(100 + Math.random() * 900);
+    const expense_no = `MNT-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${count}`;
+    const newExpense: any = {
+      id: `EXP-${Date.now()}`,
+      expense_no,
+      category: data.category || 'Perbaikan Pipa & Kebocoran',
+      title: data.title || 'Biaya Pemeliharaan Air',
+      description: data.description || '',
+      amount: Number(data.amount || 0),
+      expense_date: data.expense_date || new Date().toISOString().substring(0, 10),
+      recorded_by: data.recorded_by || 'Admin BUMDes',
+      receipt_photo_url: data.receipt_photo_url || '',
+      created_at: new Date().toISOString(),
+    };
+
+    const { data: inserted, error } = await sb.from('maintenance_expenses').insert(newExpense).select().single();
+    if (error) {
+      throw new Error(`Gagal menyimpan data pengeluaran ke Supabase: ${error.message}`);
+    }
+    return inserted;
+  },
+
+  async deleteMaintenanceExpense(id: string): Promise<{ success: boolean }> {
+    const sb = supabase();
+    const { error } = await sb.from('maintenance_expenses').delete().eq('id', id);
+    if (error) {
+      throw new Error(`Gagal menghapus data pengeluaran dari Supabase: ${error.message}`);
+    }
+    return { success: true };
+  }
 };

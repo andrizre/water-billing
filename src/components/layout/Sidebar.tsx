@@ -19,7 +19,8 @@ import {
   Megaphone,
   MessageSquareWarning,
   ArrowRightLeft,
-  Key
+  Key,
+  Wrench
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
@@ -102,6 +103,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               <NavLink to="/admin/payments" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={handleNavClick}>
                 <span className="nav-item-icon"><CreditCard size={18} /></span>
                 <span>Transaksi Bayar</span>
+              </NavLink>
+              <NavLink to="/admin/maintenance" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={handleNavClick}>
+                <span className="nav-item-icon"><Wrench size={18} /></span>
+                <span>Biaya Pemeliharaan</span>
               </NavLink>
               <NavLink to="/admin/reports" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={handleNavClick}>
                 <span className="nav-item-icon"><BarChart3 size={18} /></span>

@@ -577,6 +577,7 @@ export const initialSettings: SystemSettings = {
   qris_info: 'Tersedia di loket kantor desa atau scan barcode resmi',
   due_day_of_month: '20',
   late_fee_flat: '5000',
+  admin_fee_flat: '2500',
   bill_footer_notes: 'Harap membayar tagihan tepat waktu sebelum tanggal 20. Terima kasih atas partisipasi Anda membangun desa.'
 };
 
@@ -713,3 +714,51 @@ export const initialRegistrationTokens: RegistrationToken[] = [
     created_at: '2026-08-18 08:00:00'
   }
 ];
+
+export const initialMaintenanceExpenses: any[] = [
+  {
+    id: 'EXP-001',
+    expense_no: 'MNT-202608-001',
+    category: 'Perbaikan Pipa & Kebocoran',
+    title: 'Perbaikan Pipa PVC 2 Inch Bocor RT 02 Dusun Timur',
+    description: 'Penggantian soket pipa PVC, lem pipa, dan ongkos teknisi gali tanah.',
+    amount: 175000,
+    expense_date: '2026-08-10',
+    recorded_by: 'Bpk. Ahmad (Operator)',
+    created_at: '2026-08-10 14:30:00'
+  },
+  {
+    id: 'EXP-002',
+    expense_no: 'MNT-202608-002',
+    category: 'Listrik PLN Pompa',
+    title: 'Pembayaran Token Listrik PLN Pompa Utama Tandon',
+    description: 'Isi ulang token listrik PLN 3500VA untuk penggerak pompa celup sumur dalam.',
+    amount: 650000,
+    expense_date: '2026-08-05',
+    recorded_by: 'Admin BUMDes',
+    created_at: '2026-08-05 09:15:00'
+  },
+  {
+    id: 'EXP-003',
+    expense_no: 'MNT-202608-003',
+    category: 'Obat & Klorin Air',
+    title: 'Pembelian Kaporit & Media Pasir Silika Filter Tandon',
+    description: 'Bahan penjernih dan sterilisasi air tandon induk desa 1 drum.',
+    amount: 280000,
+    expense_date: '2026-08-12',
+    recorded_by: 'Admin BUMDes',
+    created_at: '2026-08-12 11:00:00'
+  },
+  {
+    id: 'EXP-004',
+    expense_no: 'MNT-202608-004',
+    category: 'Suku Cadang & Meteran',
+    title: 'Pembelian 2 Unit Water Meter Cadangan SNI',
+    description: 'Stok meteran air kuningan 1/2 inch untuk penggantian meteran warga yang rusak.',
+    amount: 320000,
+    expense_date: '2026-08-15',
+    recorded_by: 'Admin BUMDes',
+    created_at: '2026-08-15 16:45:00'
+  }
+];
+

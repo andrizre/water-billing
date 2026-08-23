@@ -11,7 +11,8 @@ import {
   initialAnnouncements,
   initialComplaints,
   initialSubscriptionRequests,
-  initialRegistrationTokens
+  initialRegistrationTokens,
+  initialMaintenanceExpenses
 } from './mockData';
 import { storage } from './storage';
 import { calculateTieredBillBreakdown } from '../utils/calculator';
@@ -30,7 +31,8 @@ import {
   Announcement,
   Complaint,
   SubscriptionRequest,
-  RegistrationToken
+  RegistrationToken,
+  MaintenanceExpense
 } from '../types';
 
 interface MockDatabase {
@@ -47,6 +49,7 @@ interface MockDatabase {
   complaints: Complaint[];
   subscriptionRequests: SubscriptionRequest[];
   registrationTokens: RegistrationToken[];
+  maintenanceExpenses: MaintenanceExpense[];
 }
 
 function getDatabase(): MockDatabase {
@@ -65,7 +68,8 @@ function getDatabase(): MockDatabase {
       announcements: [...initialAnnouncements],
       complaints: [...initialComplaints],
       subscriptionRequests: [...initialSubscriptionRequests],
-      registrationTokens: [...initialRegistrationTokens]
+      registrationTokens: [...initialRegistrationTokens],
+      maintenanceExpenses: [...initialMaintenanceExpenses]
     };
     storage.setMockDb(db);
   }
@@ -73,6 +77,7 @@ function getDatabase(): MockDatabase {
   if (!db.complaints) db.complaints = [...initialComplaints];
   if (!db.subscriptionRequests) db.subscriptionRequests = [...initialSubscriptionRequests];
   if (!db.registrationTokens) db.registrationTokens = [...initialRegistrationTokens];
+  if (!db.maintenanceExpenses) db.maintenanceExpenses = [...initialMaintenanceExpenses];
   return db;
 }
 
@@ -522,7 +527,8 @@ export const mockApiService = {
     let generatedBill: Bill | null = null;
     if (data.auto_generate_bill) {
       const tariff = db.tariffs.find((t) => t.id === customer.tariff_id) || db.tariffs[0];
-      const calc = calculateTieredBillBreakdown(usage, tariff);
+      const adminFee = Number(db.settings?.admin_fee_flat || 2500);
+      const calc = calculateTieredBillBreakdown(usage, tariff, false, adminFee);
       const billId = `BILL-${year}${String(month).padStart(2, '0')}-${Date.now().toString().slice(-4)}`;
 
       generatedBill = {
@@ -542,6 +548,7 @@ export const mockApiService = {
         base_amount: calc.base_fee,
         usage_amount: calc.usage_amount,
         late_fee: 0,
+        admin_fee: adminFee,
         total_amount: calc.total_amount,
         paid_amount: 0,
         balance_due: calc.total_amount,
@@ -645,7 +652,8 @@ export const mockApiService = {
       if (!reading) continue;
 
       const tariff = db.tariffs.find((t) => t.id === cust.tariff_id) || db.tariffs[0];
-      const calc = calculateTieredBillBreakdown(reading.usage_m3, tariff);
+      const adminFee = Number(db.settings?.admin_fee_flat || 2500);
+      const calc = calculateTieredBillBreakdown(reading.usage_m3, tariff, false, adminFee);
       const billId = `BILL-${periodYear}${String(periodMonth).padStart(2, '0')}-${Date.now().toString().slice(-4)}-${generatedCount}`;
 
       const newBill: Bill = {
@@ -665,6 +673,7 @@ export const mockApiService = {
         base_amount: calc.base_fee,
         usage_amount: calc.usage_amount,
         late_fee: 0,
+        admin_fee: adminFee,
         total_amount: calc.total_amount,
         paid_amount: 0,
         balance_due: calc.total_amount,
@@ -1266,5 +1275,49 @@ export const mockApiService = {
   async resetToDefault(): Promise<void> {
     localStorage.removeItem('sandmosquito_mock_database_v1');
     getDatabase(); // reinitialize
+  },
+
+  // 17. MAINTENANCE & EXPENSES
+  async getMaintenanceExpenses(params?: { category?: string; start_date?: string; end_date?: string }): Promise<MaintenanceExpense[]> {
+    const db = getDatabase();
+    let list = [...(db.maintenanceExpenses || [])];
+    if (params?.category) {
+      list = list.filter((e) => e.category === params.category);
+    }
+    if (params?.start_date) {
+      list = list.filter((e) => e.expense_date >= params.start_date!);
+    }
+    if (params?.end_date) {
+      list = list.filter((e) => e.expense_date <= params.end_date!);
+    }
+    return list.sort((a, b) => new Date(b.expense_date).getTime() - new Date(a.expense_date).getTime());
+  },
+
+  async createMaintenanceExpense(data: Partial<MaintenanceExpense>): Promise<MaintenanceExpense> {
+    const db = getDatabase();
+    const count = (db.maintenanceExpenses?.length || 0) + 1;
+    const expense_no = `MNT-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(count).padStart(3, '0')}`;
+    const newExpense: MaintenanceExpense = {
+      id: `EXP-${Date.now()}`,
+      expense_no,
+      category: data.category || 'Perbaikan Pipa & Kebocoran',
+      title: data.title || 'Biaya Pemeliharaan Air',
+      description: data.description || '',
+      amount: Number(data.amount || 0),
+      expense_date: data.expense_date || new Date().toISOString().substring(0, 10),
+      recorded_by: data.recorded_by || 'Admin BUMDes',
+      receipt_photo_url: data.receipt_photo_url || '',
+      created_at: nowTimeString()
+    };
+    db.maintenanceExpenses.unshift(newExpense);
+    saveDatabase(db);
+    return newExpense;
+  },
+
+  async deleteMaintenanceExpense(id: string): Promise<{ success: boolean }> {
+    const db = getDatabase();
+    db.maintenanceExpenses = (db.maintenanceExpenses || []).filter((e) => e.id !== id);
+    saveDatabase(db);
+    return { success: true };
   }
 };

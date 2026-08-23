@@ -6,7 +6,12 @@ import {
   CheckCircle2,
   Gauge,
   Calendar,
-  FileText
+  FileText,
+  Camera,
+  AlertTriangle,
+  Image as ImageIcon,
+  Trash2,
+  Eye
 } from 'lucide-react';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Card } from '../../components/common/Card';
@@ -37,8 +42,24 @@ export const RecordReadingPage: React.FC = () => {
   const [notes, setNotes] = useState<string>('');
   const [autoGenerateBill, setAutoGenerateBill] = useState<boolean>(true);
   const [customerMeta, setCustomerMeta] = useState<any>(null);
+  const [photoUrl, setPhotoUrl] = useState<string>('');
+  const [selectedPhotoPreview, setSelectedPhotoPreview] = useState<string | null>(null);
 
   const { success, error: toastError } = useToast();
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 3 * 1024 * 1024) {
+      toastError('Ukuran foto terlalu besar (maksimal 3MB).');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setPhotoUrl(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const fetchCustomers = useCallback(async () => {
     try {
@@ -96,6 +117,8 @@ export const RecordReadingPage: React.FC = () => {
   const [confirmModalOpen, setConfirmModalOpen] = useState<boolean>(false);
   const curVal = Number(currentReading || 0);
   const calculatedUsage = Math.max(0, curVal - prevReading);
+  const isNegativeReading = curVal < prevReading;
+  const isHighAnomalyUsage = calculatedUsage >= 35 || (prevReading > 0 && calculatedUsage > prevReading * 2.5);
 
   const handleOpenConfirm = (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,9 +126,10 @@ export const RecordReadingPage: React.FC = () => {
       toastError('Pilih pelanggan terlebih dahulu.');
       return;
     }
-    if (curVal < prevReading) {
-      toastError(`Angka meter (${curVal}) tidak boleh lebih kecil dari meter sebelumnya (${prevReading}).`);
-      return;
+    if (isNegativeReading) {
+      if (!window.confirm(`PERINGATAN: Angka meter (${curVal}) lebih kecil dari bulan lalu (${prevReading}). Lanjutkan hanya jika meteran diganti baru?`)) {
+        return;
+      }
     }
     setConfirmModalOpen(true);
   };
@@ -120,13 +144,15 @@ export const RecordReadingPage: React.FC = () => {
         prev_reading: prevReading,
         current_reading: curVal,
         auto_generate_bill: autoGenerateBill,
-        notes
+        notes,
+        photo_url: photoUrl
       });
 
       success(`Pencatatan meter berhasil! Pemakaian: ${calculatedUsage} m³.`);
       setConfirmModalOpen(false);
       fetchReadings();
       setNotes('');
+      setPhotoUrl('');
     } catch (err: any) {
       toastError(err.message || 'Gagal menyimpan catatan meter.');
     } finally {
@@ -172,6 +198,34 @@ export const RecordReadingPage: React.FC = () => {
         <span style={{ fontWeight: 800, color: 'var(--primary-700)', fontSize: 14 }}>
           {formatM3(r.usage_m3)}
         </span>
+      )
+    },
+    {
+      header: 'Foto Meter',
+      render: (r: MeterReading) => (
+        r.photo_url ? (
+          <button
+            type="button"
+            onClick={() => setSelectedPhotoPreview(r.photo_url!)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '4px 8px',
+              borderRadius: 6,
+              border: '1px solid var(--primary-200)',
+              backgroundColor: 'var(--primary-50)',
+              color: 'var(--primary-700)',
+              fontSize: 11.5,
+              fontWeight: 600,
+              cursor: 'pointer'
+            }}
+          >
+            Lihat Foto
+          </button>
+        ) : (
+          <span style={{ fontSize: 11, color: 'var(--slate-400)' }}>-</span>
+        )
       )
     },
     {
@@ -288,6 +342,138 @@ export const RecordReadingPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Smart Anomaly / Negative Warning Alerts */}
+            {isNegativeReading && (
+              <div
+                style={{
+                  backgroundColor: 'var(--danger-50)',
+                  border: '1px solid var(--danger-500)',
+                  color: 'var(--danger-700)',
+                  padding: 12,
+                  borderRadius: 'var(--radius-md)',
+                  marginBottom: 14,
+                  fontSize: 12.5,
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 8
+                }}
+              >
+                <AlertTriangle size={18} style={{ flexShrink: 0, marginTop: 1 }} />
+                <div>
+                  <strong>Perhatian: Angka Lebih Kecil!</strong>
+                  <div>Angka meter saat ini ({curVal} m³) lebih kecil dari bulan lalu ({prevReading} m³). Lanjutkan hanya jika meteran fisik diganti dengan unit baru.</div>
+                </div>
+              </div>
+            )}
+
+            {isHighAnomalyUsage && !isNegativeReading && (
+              <div
+                style={{
+                  backgroundColor: 'var(--warning-50)',
+                  border: '1px solid var(--warning-500)',
+                  color: 'var(--warning-700)',
+                  padding: 12,
+                  borderRadius: 'var(--radius-md)',
+                  marginBottom: 14,
+                  fontSize: 12.5,
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 8
+                }}
+              >
+                <AlertTriangle size={18} style={{ flexShrink: 0, marginTop: 1 }} />
+                <div>
+                  <strong>Deteksi Lonjakan Pemakaian Air ({calculatedUsage} m³)</strong>
+                  <div>Pemakaian bulan ini meningkat signifikan. Pastikan angka meter benar atau beri tahu warga untuk mengecek kemungkinan kebocoran pipa / keran terbuka.</div>
+                </div>
+              </div>
+            )}
+
+            {/* Photo Evidence Upload Container */}
+            <div
+              style={{
+                border: '1px dashed var(--slate-300)',
+                padding: 14,
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: 'var(--slate-50)',
+                marginBottom: 16
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--slate-800)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Camera size={16} color="var(--primary-600)" />
+                  Foto Bukti Fisik Meteran (Opsional)
+                </span>
+                {photoUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setPhotoUrl('')}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--danger-600)',
+                      fontSize: 12,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4
+                    }}
+                  >
+                    <Trash2 size={13} /> Hapus
+                  </button>
+                )}
+              </div>
+
+              {photoUrl ? (
+                <div style={{ position: 'relative', textAlign: 'center', marginTop: 8 }}>
+                  <img
+                    src={photoUrl}
+                    alt="Bukti fisik meteran"
+                    style={{
+                      width: '100%',
+                      maxHeight: 180,
+                      objectFit: 'contain',
+                      borderRadius: 8,
+                      border: '1px solid var(--slate-200)'
+                    }}
+                  />
+                  <span style={{ fontSize: 11, color: 'var(--success-700)', display: 'block', marginTop: 4, fontWeight: 600 }}>
+                    Foto berhasil dilampirkan
+                  </span>
+                </div>
+              ) : (
+                <label
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '16px 8px',
+                    cursor: 'pointer',
+                    borderRadius: 8,
+                    backgroundColor: '#ffffff',
+                    border: '1px solid var(--slate-200)',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <Camera size={24} color="var(--slate-400)" style={{ marginBottom: 4 }} />
+                  <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--primary-700)' }}>
+                    Ambil Foto / Upload Gambar Meteran
+                  </span>
+                  <span style={{ fontSize: 11, color: 'var(--slate-400)' }}>
+                    Format JPG, PNG (Maks 3MB)
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handlePhotoUpload}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+              )}
+            </div>
+
             <Input
               label="Catatan Lapangan (Kondisi meter, kendala, dll.)"
               placeholder="Contoh: Kondisi meter bersih, tidak bocor"
@@ -348,6 +534,15 @@ export const RecordReadingPage: React.FC = () => {
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary-800)' }}>Total Pemakaian Air:</span>
                 <span style={{ fontSize: 18, fontWeight: 900, color: 'var(--primary-700)' }}>{formatM3(calculatedUsage)}</span>
               </div>
+              {photoUrl && (
+                <div style={{ marginTop: 10, textAlign: 'center' }}>
+                  <img
+                    src={photoUrl}
+                    alt="Foto meter lampiran"
+                    style={{ maxHeight: 120, borderRadius: 6, border: '1px solid var(--slate-200)' }}
+                  />
+                </div>
+              )}
             </div>
           </div>
 
@@ -370,6 +565,28 @@ export const RecordReadingPage: React.FC = () => {
             </Button>
           </div>
         </Modal>
+
+        {/* Photo Preview Modal */}
+        {selectedPhotoPreview && (
+          <Modal
+            isOpen={!!selectedPhotoPreview}
+            onClose={() => setSelectedPhotoPreview(null)}
+            title="Bukti Foto Fisik Meteran Air"
+          >
+            <div style={{ textAlign: 'center', padding: 8 }}>
+              <img
+                src={selectedPhotoPreview}
+                alt="Foto bukti meter"
+                style={{ width: '100%', maxHeight: 420, objectFit: 'contain', borderRadius: 8 }}
+              />
+            </div>
+            <div className="modal-footer" style={{ marginTop: 16 }}>
+              <Button variant="secondary" onClick={() => setSelectedPhotoPreview(null)}>
+                Tutup Pratinjau
+              </Button>
+            </div>
+          </Modal>
+        )}
 
         {/* Info & Helper Card */}
         <Card title="Petunjuk Pencatatan Lapangan">

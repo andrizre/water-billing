@@ -268,7 +268,7 @@ export const TariffManagement: React.FC = () => {
 
           <div
             style={{
-              backgroundColor: '#ffffff',
+              backgroundColor: 'var(--slate-50)',
               padding: '12px 18px',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--slate-200)',

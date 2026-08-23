@@ -94,6 +94,7 @@ CREATE TABLE IF NOT EXISTS public.meter_readings (
   reader_id text,
   reader_name text,
   notes text,
+  photo_url text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz
 );
@@ -116,6 +117,7 @@ CREATE TABLE IF NOT EXISTS public.bills (
   base_amount numeric NOT NULL DEFAULT 0,
   usage_amount numeric NOT NULL DEFAULT 0,
   late_fee numeric NOT NULL DEFAULT 0,
+  admin_fee numeric NOT NULL DEFAULT 0,
   total_amount numeric NOT NULL DEFAULT 0,
   paid_amount numeric NOT NULL DEFAULT 0,
   balance_due numeric NOT NULL DEFAULT 0,
@@ -231,6 +233,20 @@ CREATE TABLE IF NOT EXISTS public.registration_tokens (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- 14. Tabel Biaya Pemeliharaan & Operasional (Maintenance Expenses)
+CREATE TABLE IF NOT EXISTS public.maintenance_expenses (
+  id text PRIMARY KEY,
+  expense_no text UNIQUE NOT NULL,
+  category text NOT NULL CHECK (category IN ('Perbaikan Pipa & Kebocoran', 'Listrik PLN Pompa', 'Obat & Klorin Air', 'Suku Cadang & Meteran', 'Honor & Operasional Lapangan', 'Lainnya')),
+  title text NOT NULL,
+  description text,
+  amount numeric NOT NULL DEFAULT 0,
+  expense_date date NOT NULL,
+  recorded_by text DEFAULT 'Admin BUMDes',
+  receipt_photo_url text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
 -- ============================================================================
 -- INDEKS PERFORMA
 -- ============================================================================
@@ -250,6 +266,8 @@ CREATE INDEX IF NOT EXISTS idx_announcements_audience ON public.announcements(ta
 CREATE INDEX IF NOT EXISTS idx_complaints_customer_id ON public.complaints(customer_id);
 CREATE INDEX IF NOT EXISTS idx_sub_requests_customer_id ON public.subscription_requests(customer_id);
 CREATE INDEX IF NOT EXISTS idx_reg_tokens_token ON public.registration_tokens(token);
+CREATE INDEX IF NOT EXISTS idx_maintenance_category ON public.maintenance_expenses(category);
+CREATE INDEX IF NOT EXISTS idx_maintenance_date ON public.maintenance_expenses(expense_date);
 
 -- ============================================================================
 -- KEAMANAN ROW LEVEL SECURITY (RLS) & PRIVILEGES
@@ -267,6 +285,7 @@ ALTER TABLE public.announcements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.complaints ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.subscription_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.registration_tokens ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.maintenance_expenses ENABLE ROW LEVEL SECURITY;
 
 -- Policies
 CREATE POLICY "Allow anon full access to users" ON public.users FOR ALL TO anon USING (true) WITH CHECK (true);
@@ -308,6 +327,9 @@ CREATE POLICY "Allow authenticated full access to subscription_requests" ON publ
 CREATE POLICY "Allow anon full access to registration_tokens" ON public.registration_tokens FOR ALL TO anon USING (true) WITH CHECK (true);
 CREATE POLICY "Allow authenticated full access to registration_tokens" ON public.registration_tokens FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
+CREATE POLICY "Allow anon full access to maintenance_expenses" ON public.maintenance_expenses FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "Allow authenticated full access to maintenance_expenses" ON public.maintenance_expenses FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
 -- Grant privileges ke peran anon & authenticated
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO anon, authenticated;
 
@@ -325,6 +347,7 @@ INSERT INTO public.settings (key, value) VALUES
   ('qris_info', 'Tersedia di loket kantor desa atau scan barcode resmi'),
   ('due_day_of_month', '20'),
   ('late_fee_flat', '5000'),
+  ('admin_fee_flat', '2500'),
   ('bill_footer_notes', 'Harap membayar tagihan tepat waktu sebelum tanggal 20. Terima kasih atas partisipasi Anda membangun desa.')
 ON CONFLICT (key) DO NOTHING;
 
@@ -350,3 +373,10 @@ INSERT INTO public.registration_tokens (id, token, recipient_name, target_role, 
   ('TOK-001', 'DESA-AIR-2026', 'Warga Baru Dusun Krajan', 'customer', 'TRF-01', false, 'Token pendaftaran umum warga'),
   ('TOK-002', 'WARGA-MANDIRI-88', 'Bpk. Ahmad Dahlan', 'customer', 'TRF-01', false, 'Token pendaftaran sambungan baru')
 ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.maintenance_expenses (id, expense_no, category, title, description, amount, expense_date, recorded_by) VALUES
+  ('EXP-001', 'MNT-202608-001', 'Perbaikan Pipa & Kebocoran', 'Perbaikan Pipa PVC 2 Inch Dusun Timur', 'Pembelian sambungan soket pipa dan lem PVC', 175000, '2026-08-10', 'Admin BUMDes'),
+  ('EXP-002', 'MNT-202608-002', 'Listrik PLN Pompa', 'Token Listrik PLN Pompa Sumur Bor 1', 'Pembelian token listrik pompa utama tandon desa', 450000, '2026-08-05', 'Admin BUMDes'),
+  ('EXP-003', 'MNT-202608-003', 'Obat & Klorin Air', 'Kaporit / Klorin Penjernih Tandon Air', 'Pengisian zat disinfektan klorin tandon pusat', 120000, '2026-08-02', 'Admin BUMDes')
+ON CONFLICT (id) DO NOTHING;
+

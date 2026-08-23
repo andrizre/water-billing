@@ -8,7 +8,9 @@ import {
   Download,
   Printer,
   Calendar,
-  Filter
+  Filter,
+  Wrench,
+  DollarSign
 } from 'lucide-react';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Card } from '../../components/common/Card';
@@ -24,8 +26,10 @@ import { useSettings } from '../../context/SettingsContext';
 import { api } from '../../services/api';
 import { exportToCsv } from '../../utils/exportCsv';
 import { formatRupiah, formatM3, formatDate, formatDateTime, formatPeriod, INDONESIAN_MONTHS } from '../../utils/formatters';
+import { usePageTitle } from '../../hooks/usePageTitle';
 
 export const ReportsPage: React.FC = () => {
+  usePageTitle('Laporan & Rekapitulasi Keuangan', 'Rekapitulasi terpadu penerimaan kas, piutang, kubikasi air, dan laba pemeliharaan.');
   const [activeTab, setActiveTab] = useState<string>('billing');
   const [loading, setLoading] = useState<boolean>(true);
   const [reportData, setReportData] = useState<any>(null);
@@ -51,6 +55,24 @@ export const ReportsPage: React.FC = () => {
         data = await api.getArrearsReport();
       } else if (activeTab === 'usage') {
         data = await api.getUsageReport({ period_month: periodMonth, period_year: periodYear });
+      } else if (activeTab === 'profit_loss') {
+        const [paymentRep, expenses] = await Promise.all([
+          api.getPaymentReport({}),
+          api.getMaintenanceExpenses({})
+        ]);
+        const totalRevenue = paymentRep?.summary?.total_revenue || (paymentRep?.items || []).reduce((acc: number, curr: any) => acc + (curr.amount_paid || 0), 0);
+        const totalExpense = (expenses || []).reduce((acc: number, curr: any) => acc + (curr.amount || 0), 0);
+        const netProfit = totalRevenue - totalExpense;
+
+        data = {
+          summary: {
+            total_revenue: totalRevenue,
+            total_expense: totalExpense,
+            net_profit: netProfit,
+            expense_count: expenses.length
+          },
+          items: expenses || []
+        };
       }
 
       setReportData(data);
@@ -99,6 +121,12 @@ export const ReportsPage: React.FC = () => {
         i.reading_no, i.customer_no, i.customer_name, i.rt_rw, i.period, i.prev_reading, i.current_reading, i.usage_m3
       ]);
       exportToCsv(`laporan-pemakaian-air-${periodMonth}-${periodYear}`, headers, rows);
+    } else if (activeTab === 'profit_loss') {
+      const headers = ['No. Biaya', 'Tanggal', 'Kategori', 'Keperluan', 'Biaya (Rp)'];
+      const rows = reportData.items.map((i: any) => [
+        i.expense_no, i.expense_date, i.category, i.title, i.amount
+      ]);
+      exportToCsv(`laporan-laba-rugi-maintenance`, headers, rows);
     }
 
     success('Laporan berhasil diexport ke CSV.');
@@ -108,7 +136,8 @@ export const ReportsPage: React.FC = () => {
     { id: 'billing', label: '1. Rekap Tagihan Air', icon: <Receipt size={16} /> },
     { id: 'payment', label: '2. Penerimaan Pembayaran Kas', icon: <CreditCard size={16} /> },
     { id: 'arrears', label: '3. Daftar Tunggakan Warga', icon: <AlertTriangle size={16} /> },
-    { id: 'usage', label: '4. Rekap Pemakaian Kubikasi (m³)', icon: <Gauge size={16} /> }
+    { id: 'usage', label: '4. Rekap Pemakaian Kubikasi (m³)', icon: <Gauge size={16} /> },
+    { id: 'profit_loss', label: '5. Laba Bersih & Pemeliharaan', icon: <DollarSign size={16} /> }
   ];
 
   return (
@@ -155,12 +184,12 @@ export const ReportsPage: React.FC = () => {
       </div>
 
       {/* Filters (No-print) */}
-      <Card bodyClassName="p-4" style={{ marginBottom: 20 }} className="no-print">
+      <Card bodyClassName="p-3" style={{ marginBottom: 14 }} className="no-print">
         <div className="filter-bar" style={{ margin: 0 }}>
           <div className="filter-group">
             {(activeTab === 'billing' || activeTab === 'usage') && (
               <>
-                <div style={{ width: 150 }}>
+                <div style={{ width: 140 }}>
                   <Select
                     label="Bulan"
                     options={INDONESIAN_MONTHS.map((m, idx) => ({ label: m, value: String(idx + 1) }))}
@@ -168,7 +197,7 @@ export const ReportsPage: React.FC = () => {
                     onChange={(e) => setPeriodMonth(e.target.value)}
                   />
                 </div>
-                <div style={{ width: 120 }}>
+                <div style={{ width: 110 }}>
                   <Select
                     label="Tahun"
                     options={[
@@ -183,7 +212,7 @@ export const ReportsPage: React.FC = () => {
             )}
 
             {activeTab === 'payment' && (
-              <div style={{ width: 200 }}>
+              <div style={{ width: 180 }}>
                 <Select
                   label="Metode Bayar"
                   options={[
@@ -206,67 +235,73 @@ export const ReportsPage: React.FC = () => {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-            gap: 16,
-            marginBottom: 20
+            gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+            gap: 10,
+            marginBottom: 14
           }}
         >
           {activeTab === 'billing' && (
             <>
-              <div style={{ backgroundColor: '#ffffff', padding: 16, borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
-                <div style={{ fontSize: 12, color: 'var(--slate-500)', fontWeight: 600 }}>TOTAL LEMBAR TAGIHAN</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--slate-900)' }}>{reportData.summary.total_bills || reportData.items.length}</div>
+              <div style={{ backgroundColor: 'var(--slate-50)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
+                <div style={{ fontSize: 11, color: 'var(--slate-500)', fontWeight: 600 }}>TOTAL LEMBAR TAGIHAN</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--slate-900)' }}>{reportData.summary.total_bills || reportData.items.length}</div>
               </div>
-              <div style={{ backgroundColor: '#ffffff', padding: 16, borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
-                <div style={{ fontSize: 12, color: 'var(--slate-500)', fontWeight: 600 }}>TOTAL NILAI TAGIHAN</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--primary-700)' }}>{formatRupiah(reportData.summary.total_billed)}</div>
+              <div style={{ backgroundColor: 'var(--slate-50)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
+                <div style={{ fontSize: 11, color: 'var(--slate-500)', fontWeight: 600 }}>TOTAL NILAI TAGIHAN</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--primary-700)' }}>{formatRupiah(reportData.summary.total_billed)}</div>
               </div>
-              <div style={{ backgroundColor: '#ffffff', padding: 16, borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
-                <div style={{ fontSize: 12, color: 'var(--slate-500)', fontWeight: 600 }}>SUDAH TERBAYAR</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--success-700)' }}>{formatRupiah(reportData.summary.total_paid)}</div>
+              <div style={{ backgroundColor: 'var(--slate-50)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
+                <div style={{ fontSize: 11, color: 'var(--slate-500)', fontWeight: 600 }}>SUDAH TERBAYAR</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--success-700)' }}>{formatRupiah(reportData.summary.total_paid)}</div>
               </div>
-              <div style={{ backgroundColor: '#ffffff', padding: 16, borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
-                <div style={{ fontSize: 12, color: 'var(--slate-500)', fontWeight: 600 }}>BELUM LUNAS / TUNGGAKAN</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--danger-700)' }}>{formatRupiah(reportData.summary.total_balance_due)}</div>
+              <div style={{ backgroundColor: 'var(--slate-50)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
+                <div style={{ fontSize: 11, color: 'var(--slate-500)', fontWeight: 600 }}>BELUM LUNAS / TUNGGAKAN</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--danger-700)' }}>{formatRupiah(reportData.summary.total_balance_due)}</div>
               </div>
             </>
           )}
 
           {activeTab === 'payment' && (
             <>
-              <div style={{ backgroundColor: '#ffffff', padding: 16, borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
-                <div style={{ fontSize: 12, color: 'var(--slate-500)', fontWeight: 600 }}>TOTAL TRANSAKSI</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--slate-900)' }}>{reportData.summary.total_transactions || reportData.items.length}</div>
+              <div style={{ backgroundColor: 'var(--slate-50)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
+                <div style={{ fontSize: 11, color: 'var(--slate-500)', fontWeight: 600 }}>TOTAL TRANSAKSI</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--slate-900)' }}>{reportData.summary.total_transactions || reportData.items.length}</div>
               </div>
-              <div style={{ backgroundColor: '#ffffff', padding: 16, borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
-                <div style={{ fontSize: 12, color: 'var(--slate-500)', fontWeight: 600 }}>TOTAL PENDAPATAN DITERIMA</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--success-700)' }}>{formatRupiah(reportData.summary.total_revenue)}</div>
+              <div style={{ backgroundColor: 'var(--slate-50)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
+                <div style={{ fontSize: 11, color: 'var(--slate-500)', fontWeight: 600 }}>TOTAL PENDAPATAN DITERIMA</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--success-700)' }}>{formatRupiah(reportData.summary.total_revenue)}</div>
               </div>
             </>
           )}
 
           {activeTab === 'arrears' && (
             <>
-              <div style={{ backgroundColor: '#ffffff', padding: 16, borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
-                <div style={{ fontSize: 12, color: 'var(--slate-500)', fontWeight: 600 }}>JUMLAH WARGA MENUNGGAK</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--danger-700)' }}>{reportData.summary.total_defaulters || reportData.items.length} Pelanggan</div>
+              <div style={{ backgroundColor: 'var(--slate-50)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
+                <div style={{ fontSize: 11, color: 'var(--slate-500)', fontWeight: 600 }}>JUMLAH WARGA MENUNGGAK</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--danger-700)' }}>{reportData.summary.total_defaulters || reportData.items.length} Pelanggan</div>
               </div>
-              <div style={{ backgroundColor: '#ffffff', padding: 16, borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
-                <div style={{ fontSize: 12, color: 'var(--slate-500)', fontWeight: 600 }}>TOTAL PIUTANG AIR DESA</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--danger-700)' }}>{formatRupiah(reportData.summary.total_arrears_amount)}</div>
+              <div style={{ backgroundColor: 'var(--slate-50)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
+                <div style={{ fontSize: 11, color: 'var(--slate-500)', fontWeight: 600 }}>TOTAL PIUTANG AIR DESA</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--danger-700)' }}>{formatRupiah(reportData.summary.total_arrears_amount)}</div>
               </div>
             </>
           )}
 
-          {activeTab === 'usage' && (
+          {activeTab === 'profit_loss' && (
             <>
-              <div style={{ backgroundColor: '#ffffff', padding: 16, borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
-                <div style={{ fontSize: 12, color: 'var(--slate-500)', fontWeight: 600 }}>TOTAL PENGGUNAAN AIR</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--primary-700)' }}>{formatM3(reportData.summary.total_usage_m3)}</div>
+              <div style={{ backgroundColor: 'var(--slate-50)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
+                <div style={{ fontSize: 11, color: 'var(--slate-500)', fontWeight: 600 }}>TOTAL PENDAPATAN KAS AIR</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--success-700)' }}>{formatRupiah(reportData.summary.total_revenue)}</div>
               </div>
-              <div style={{ backgroundColor: '#ffffff', padding: 16, borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
-                <div style={{ fontSize: 12, color: 'var(--slate-500)', fontWeight: 600 }}>RATA-RATA PEMAKAIAN / RUMAH</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--slate-800)' }}>{reportData.summary.avg_usage_m3 || '0'} m³</div>
+              <div style={{ backgroundColor: 'var(--slate-50)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
+                <div style={{ fontSize: 11, color: 'var(--slate-500)', fontWeight: 600 }}>TOTAL BIAYA PEMELIHARAAN</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--danger-700)' }}>{formatRupiah(reportData.summary.total_expense)}</div>
+              </div>
+              <div style={{ backgroundColor: reportData.summary.net_profit >= 0 ? 'var(--primary-50)' : 'var(--danger-50)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--primary-200)' }}>
+                <div style={{ fontSize: 11, color: 'var(--primary-800)', fontWeight: 700 }}>LABA BERSIH (SHU AIR BUMDES)</div>
+                <div style={{ fontSize: 19, fontWeight: 900, color: reportData.summary.net_profit >= 0 ? 'var(--primary-700)' : 'var(--danger-700)' }}>
+                  {formatRupiah(reportData.summary.net_profit)}
+                </div>
               </div>
             </>
           )}
@@ -308,13 +343,26 @@ export const ReportsPage: React.FC = () => {
                     { header: 'Lama Menunggak', render: (i: any) => `${i.unpaid_months_count} Bulan` },
                     { header: 'Total Tunggakan', render: (i: any) => <strong style={{ color: 'var(--danger-700)', fontSize: 14 }}>{formatRupiah(i.total_arrears)}</strong> }
                   ]
-                : [
+                : activeTab === 'usage'
+                ? [
                     { header: 'No. Pencatatan', render: (i: any) => <strong>{i.reading_no}</strong> },
                     { header: 'Nama Pelanggan', render: (i: any) => `${i.customer_name} (${i.customer_no})` },
                     { header: 'RT/RW', accessor: 'rt_rw' },
                     { header: 'Meter Awal', render: (i: any) => `${i.prev_reading} m³` },
                     { header: 'Meter Akhir', render: (i: any) => `${i.current_reading} m³` },
                     { header: 'Volume Pemakaian', render: (i: any) => <strong style={{ color: 'var(--primary-700)' }}>{formatM3(i.usage_m3)}</strong> }
+                  ]
+                : [
+                    { header: 'No. Biaya', render: (i: any) => <strong>{i.expense_no}</strong> },
+                    { header: 'Tanggal', render: (i: any) => formatDate(i.expense_date) },
+                    { header: 'Kategori', render: (i: any) => <Badge variant="neutral">{i.category}</Badge> },
+                    { header: 'Keperluan & Rincian', render: (i: any) => (
+                      <div>
+                        <strong>{i.title}</strong>
+                        {i.description && <div style={{ fontSize: 11, color: 'var(--slate-500)' }}>{i.description}</div>}
+                      </div>
+                    )},
+                    { header: 'Biaya Pengeluaran', render: (i: any) => <strong style={{ color: 'var(--danger-700)', fontSize: 14 }}>{formatRupiah(i.amount)}</strong> }
                   ]
             }
             data={reportData?.items || []}

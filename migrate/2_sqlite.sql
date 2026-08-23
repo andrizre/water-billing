@@ -98,6 +98,7 @@ CREATE TABLE IF NOT EXISTS meter_readings (
   reader_id TEXT,
   reader_name TEXT,
   notes TEXT,
+  photo_url TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -120,6 +121,7 @@ CREATE TABLE IF NOT EXISTS bills (
   base_amount REAL NOT NULL DEFAULT 0,
   usage_amount REAL NOT NULL DEFAULT 0,
   late_fee REAL NOT NULL DEFAULT 0,
+  admin_fee REAL NOT NULL DEFAULT 0,
   total_amount REAL NOT NULL DEFAULT 0,
   paid_amount REAL NOT NULL DEFAULT 0,
   balance_due REAL NOT NULL DEFAULT 0,
@@ -234,3 +236,18 @@ CREATE TABLE IF NOT EXISTS registration_tokens (
   notes TEXT,
   created_at TEXT NOT NULL
 );
+
+-- 14. Maintenance Expenses Table
+CREATE TABLE IF NOT EXISTS maintenance_expenses (
+  id TEXT PRIMARY KEY,
+  expense_no TEXT UNIQUE NOT NULL,
+  category TEXT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  amount REAL NOT NULL DEFAULT 0,
+  expense_date TEXT NOT NULL,
+  recorded_by TEXT DEFAULT 'Admin BUMDes',
+  receipt_photo_url TEXT,
+  created_at TEXT NOT NULL
+);
+

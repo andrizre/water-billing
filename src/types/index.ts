@@ -107,6 +107,7 @@ export interface Bill {
   base_amount: number;
   usage_amount: number;
   late_fee: number;
+  admin_fee?: number;
   total_amount: number;
   paid_amount: number;
   balance_due: number;
@@ -149,8 +150,9 @@ export interface SystemSettings {
   qris_info: string;
   due_day_of_month: string;
   late_fee_flat: string;
+  admin_fee_flat?: string;
   bill_footer_notes: string;
-  [key: string]: string;
+  [key: string]: string | undefined;
 }
 
 export interface AuditLog {
@@ -300,6 +302,7 @@ export interface BillBreakdown {
   tier3_amount: number;
   usage_amount: number;
   late_fee: number;
+  admin_fee?: number;
   total_amount: number;
 }
 
@@ -324,3 +327,25 @@ export interface AuthSession {
     customer?: Customer | null;
   };
 }
+
+export type MaintenanceExpenseCategory =
+  | 'Perbaikan Pipa & Kebocoran'
+  | 'Listrik PLN Pompa'
+  | 'Obat & Klorin Air'
+  | 'Suku Cadang & Meteran'
+  | 'Honor & Operasional Lapangan'
+  | 'Lainnya';
+
+export interface MaintenanceExpense {
+  id: string;
+  expense_no: string;
+  category: MaintenanceExpenseCategory;
+  title: string;
+  description?: string;
+  amount: number;
+  expense_date: string;
+  recorded_by?: string;
+  receipt_photo_url?: string;
+  created_at?: string;
+}
+

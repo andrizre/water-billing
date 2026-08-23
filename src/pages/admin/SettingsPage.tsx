@@ -280,9 +280,9 @@ export const SettingsPage: React.FC = () => {
         {/* Billing & Payment Configuration Card */}
         <Card title="Aturan Pembayaran & Rekening Bank">
           <form onSubmit={handleSave}>
-            <div className="form-grid-2">
+            <div className="form-grid-3">
               <Input
-                label="Tanggal Batas Jatuh Tempo (Setiap Bulan)"
+                label="Tanggal Batas Jatuh Tempo"
                 type="number"
                 min="1"
                 max="28"
@@ -292,11 +292,19 @@ export const SettingsPage: React.FC = () => {
                 required
               />
               <Input
-                label="Denda Keterlambatan Standar (Rp)"
+                label="Denda Keterlambatan (Rp)"
                 type="number"
                 value={formData.late_fee_flat}
                 onChange={(e) => handleChange('late_fee_flat', e.target.value)}
                 hint="Denda tetap per bulan"
+                required
+              />
+              <Input
+                label="Biaya Administrasi (Rp)"
+                type="number"
+                value={formData.admin_fee_flat || '2500'}
+                onChange={(e) => handleChange('admin_fee_flat', e.target.value)}
+                hint="Biaya admin per lembar tagihan"
                 required
               />
             </div>

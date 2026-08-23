@@ -11,8 +11,10 @@ import { Badge } from '../../components/common/Badge';
 import { BillInvoiceModal } from '../../components/print/BillInvoicePrint';
 import { Bill } from '../../types';
 import { formatRupiah, formatM3, formatDate, formatPeriod } from '../../utils/formatters';
+import { usePageTitle } from '../../hooks/usePageTitle';
 
 export const PublicBillCheckPage: React.FC = () => {
+  usePageTitle('Cek Tagihan Air Mandiri', 'Portal cek tagihan air minum desa dan riwayat pemakaian air secara transparan dan mudah.');
   const [customerNo, setCustomerNo] = useState<string>('CUST-2026-0001');
   const [loading, setLoading] = useState<boolean>(false);
   const [searchResult, setSearchResult] = useState<any | null>(null);
@@ -53,17 +55,16 @@ export const PublicBillCheckPage: React.FC = () => {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
           <Link
             to="/login"
+            className="btn-secondary"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: 8,
               fontSize: 14,
               fontWeight: 600,
-              color: 'var(--slate-700)',
-              backgroundColor: '#ffffff',
               padding: '8px 14px',
               borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--slate-200)'
+              textDecoration: 'none'
             }}
           >
             <ArrowLeft size={16} />
@@ -269,7 +270,7 @@ export const PublicBillCheckPage: React.FC = () => {
                 marginTop: 20,
                 padding: 16,
                 borderRadius: 'var(--radius-md)',
-                backgroundColor: '#ffffff',
+                backgroundColor: 'var(--slate-50)',
                 border: '1px solid var(--slate-200)',
                 fontSize: 13,
                 color: 'var(--slate-600)'

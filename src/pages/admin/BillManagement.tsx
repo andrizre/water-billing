@@ -6,7 +6,13 @@ import {
   Download,
   Printer,
   Sparkles,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Share2,
+  Filter,
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+  Layers
 } from 'lucide-react';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Card } from '../../components/common/Card';
@@ -21,24 +27,29 @@ import { BillInvoiceModal } from '../../components/print/BillInvoicePrint';
 import { useDebounce } from '../../hooks/useDebounce';
 import { usePagination } from '../../hooks/usePagination';
 import { useToast } from '../../context/ToastContext';
+import { useSettings } from '../../context/SettingsContext';
 import { api } from '../../services/api';
 import { exportToCsv } from '../../utils/exportCsv';
 import { Bill } from '../../types';
 import { formatRupiah, formatM3, formatDate, formatPeriod, INDONESIAN_MONTHS } from '../../utils/formatters';
+import { usePageTitle } from '../../hooks/usePageTitle';
 
 export const BillManagement: React.FC = () => {
+  usePageTitle('Manajemen Tagihan Air', 'Kelola rekening tagihan air warga, status pembayaran, denda, dan pencetakan faktur massal.');
   const [bills, setBills] = useState<Bill[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [search, setSearch] = useState<string>('');
   const [monthFilter, setMonthFilter] = useState<string>('8');
   const [yearFilter, setYearFilter] = useState<string>('2026');
   const [statusFilter, setStatusFilter] = useState<string>('');
+  const [rtFilter, setRtFilter] = useState<string>('');
 
   // Modals
   const [batchModalOpen, setBatchModalOpen] = useState<boolean>(false);
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
   const [invoiceModalOpen, setInvoiceModalOpen] = useState<boolean>(false);
   const [batchGenerating, setBatchGenerating] = useState<boolean>(false);
+  const [massPrintModalOpen, setMassPrintModalOpen] = useState<boolean>(false);
 
   // Batch Generator Form
   const [batchMonth, setBatchMonth] = useState<string>('8');
@@ -46,6 +57,7 @@ export const BillManagement: React.FC = () => {
 
   const debouncedSearch = useDebounce(search, 300);
   const { success, error: toastError } = useToast();
+  const { settings } = useSettings();
 
   const fetchBills = useCallback(async () => {
     try {
@@ -56,13 +68,17 @@ export const BillManagement: React.FC = () => {
         period_year: yearFilter,
         status: statusFilter
       });
-      setBills(data);
+      let filtered = data || [];
+      if (rtFilter) {
+        filtered = filtered.filter((b: Bill) => b.rt_rw === rtFilter);
+      }
+      setBills(filtered);
     } catch (err: any) {
       toastError(err.message || 'Gagal memuat daftar tagihan.');
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearch, monthFilter, yearFilter, statusFilter, toastError]);
+  }, [debouncedSearch, monthFilter, yearFilter, statusFilter, rtFilter, toastError]);
 
   useEffect(() => {
     fetchBills();
@@ -102,6 +118,33 @@ export const BillManagement: React.FC = () => {
     ]);
     exportToCsv(`laporan-tagihan-${monthFilter}-${yearFilter}`, headers, rows);
     success('Data tagihan berhasil diexport ke CSV.');
+  };
+
+  const handleSendSingleWhatsApp = (b: Bill) => {
+    const custPhone = (b.phone || '').replace(/\D/g, '');
+    let formattedPhone = custPhone;
+    if (formattedPhone.startsWith('0')) {
+      formattedPhone = '62' + formattedPhone.substring(1);
+    }
+
+    const message = `*PEMBERITAHUAN TAGIHAN AIR DESA*\n` +
+      `*${settings.organization_name || 'BUMDes Tirta Sandmosquito'}*\n` +
+      `--------------------------------\n` +
+      `• No. Tagihan : ${b.bill_no}\n` +
+      `• No. Pelanggan: ${b.customer_no || '-'}\n` +
+      `• Nama Warga   : ${b.customer_name || '-'}\n` +
+      `• Periode      : ${formatPeriod(b.period_month, b.period_year)}\n` +
+      `• Total Pakai  : ${formatM3(b.usage_m3)}\n` +
+      `• *TOTAL TAGIHAN*: *${formatRupiah(b.total_amount)}*\n` +
+      `• Jatuh Tempo  : ${formatDate(b.due_date)}\n` +
+      `--------------------------------\n` +
+      `Mohon lakukan pembayaran sebelum tanggal jatuh tempo. Terima kasih.`;
+
+    const waUrl = formattedPhone
+      ? `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`
+      : `https://wa.me/?text=${encodeURIComponent(message)}`;
+
+    window.open(waUrl, '_blank');
   };
 
   const monthOptions = [
@@ -178,17 +221,36 @@ export const BillManagement: React.FC = () => {
       header: 'Aksi',
       align: 'right' as const,
       render: (b: Bill) => (
-        <Button
-          size="sm"
-          variant="secondary"
-          icon={<Printer size={13} />}
-          onClick={() => {
-            setSelectedBill(b);
-            setInvoiceModalOpen(true);
-          }}
-        >
-          Cetak Faktur
-        </Button>
+        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+          <button
+            type="button"
+            onClick={() => handleSendSingleWhatsApp(b)}
+            title="Kirim pemberitahuan tagihan ke WhatsApp warga"
+            style={{
+              padding: '6px 8px',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--success-500)',
+              backgroundColor: 'var(--success-50)',
+              color: 'var(--success-700)',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center'
+            }}
+          >
+            <Share2 size={13} />
+          </button>
+          <Button
+            size="sm"
+            variant="secondary"
+            icon={<Printer size={13} />}
+            onClick={() => {
+              setSelectedBill(b);
+              setInvoiceModalOpen(true);
+            }}
+          >
+            Faktur
+          </Button>
+        </div>
       )
     }
   ];
@@ -199,7 +261,10 @@ export const BillManagement: React.FC = () => {
         title="Manajemen Tagihan Air (Billing)"
         subtitle="Daftar rekening air warga, status pembayaran, denda keterlambatan, dan pencetakan faktur tagihan."
         action={
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <Button variant="secondary" icon={<Printer size={16} />} onClick={() => setMassPrintModalOpen(true)}>
+              Cetak Massal Faktur
+            </Button>
             <Button variant="secondary" icon={<Download size={16} />} onClick={handleExportCsv}>
               Export CSV
             </Button>
@@ -213,6 +278,40 @@ export const BillManagement: React.FC = () => {
           </div>
         }
       />
+
+      {/* Quick Status Filter Tabs */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+        {[
+          { label: 'Semua Status', value: '' },
+          { label: 'Belum Dibayar', value: 'Belum Dibayar' },
+          { label: 'Jatuh Tempo (Menunggak)', value: 'Jatuh Tempo' },
+          { label: 'Sebagian Dibayar', value: 'Sebagian Dibayar' },
+          { label: 'Lunas', value: 'Lunas' }
+        ].map((tab) => {
+          const isActive = statusFilter === tab.value;
+          return (
+            <button
+              key={tab.value}
+              type="button"
+              onClick={() => setStatusFilter(tab.value)}
+              className={`filter-pill ${isActive ? 'active' : ''}`}
+              style={{
+                padding: '6px 14px',
+                borderRadius: 9999,
+                fontSize: 12.5,
+                fontWeight: 600,
+                cursor: 'pointer',
+                border: isActive ? '1px solid var(--primary-600)' : '1px solid var(--slate-300)',
+                backgroundColor: isActive ? 'var(--primary-600)' : 'var(--slate-50)',
+                color: isActive ? '#ffffff' : 'var(--slate-700)',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
 
       {/* Filter Bar */}
       <Card bodyClassName="p-4" style={{ marginBottom: 20 }}>
@@ -251,14 +350,14 @@ export const BillManagement: React.FC = () => {
             <div style={{ width: 160 }}>
               <Select
                 options={[
-                  { label: 'Semua Status', value: '' },
-                  { label: 'Belum Dibayar', value: 'Belum Dibayar' },
-                  { label: 'Sebagian Dibayar', value: 'Sebagian Dibayar' },
-                  { label: 'Lunas', value: 'Lunas' },
-                  { label: 'Jatuh Tempo', value: 'Jatuh Tempo' }
+                  { label: 'Semua RT / Wilayah', value: '' },
+                  { label: 'RT 01 / RW 01', value: 'RT 01 / RW 01' },
+                  { label: 'RT 02 / RW 01', value: 'RT 02 / RW 01' },
+                  { label: 'RT 03 / RW 02', value: 'RT 03 / RW 02' },
+                  { label: 'RT 04 / RW 02', value: 'RT 04 / RW 02' }
                 ]}
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                value={rtFilter}
+                onChange={(e) => setRtFilter(e.target.value)}
               />
             </div>
           </div>
@@ -346,12 +445,75 @@ export const BillManagement: React.FC = () => {
         </form>
       </Modal>
 
-      {/* Bill Invoice Modal for Printing */}
+      {/* Bill Invoice Modal for Single Printing */}
       <BillInvoiceModal
         isOpen={invoiceModalOpen}
         onClose={() => setInvoiceModalOpen(false)}
         bill={selectedBill}
       />
+
+      {/* Mass Print Modal for Whole RT / Active Batch */}
+      <Modal
+        isOpen={massPrintModalOpen}
+        onClose={() => setMassPrintModalOpen(false)}
+        size="lg"
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Printer size={20} color="var(--primary-600)" />
+            <span>Cetak Massal Faktur Tagihan ({bills.length} Faktur)</span>
+          </div>
+        }
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setMassPrintModalOpen(false)}>
+              Tutup
+            </Button>
+            <Button variant="primary" icon={<Printer size={16} />} onClick={() => window.print()}>
+              Print Semua Faktur ({bills.length})
+            </Button>
+          </>
+        }
+      >
+        <div className="printable-area" style={{ maxHeight: 500, overflowY: 'auto', padding: 8 }}>
+          <p style={{ fontSize: 13, color: 'var(--slate-600)', marginBottom: 16 }}>
+            Berikut pratinjau seluruh lembar tagihan rekening air untuk wilayah <strong>{rtFilter || 'Semua Wilayah'}</strong> ({formatPeriod(Number(monthFilter || '8'), Number(yearFilter || '2026'))}).
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {bills.map((b, idx) => (
+              <div
+                key={b.id}
+                style={{
+                  border: '1px solid var(--slate-300)',
+                  borderRadius: 8,
+                  padding: 12,
+                  backgroundColor: 'var(--slate-50)',
+                  pageBreakInside: 'avoid'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--slate-200)', paddingBottom: 6, marginBottom: 8, fontSize: 12 }}>
+                  <div>
+                    <strong>{settings.organization_name || 'BUMDes Tirta Sandmosquito'}</strong> • {b.bill_no}
+                  </div>
+                  <Badge status={b.status} />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                  <div>
+                    <div style={{ fontWeight: 800 }}>{b.customer_name} ({b.customer_no})</div>
+                    <div style={{ fontSize: 11, color: 'var(--slate-500)' }}>Wilayah: {b.rt_rw} | Periode: {formatPeriod(b.period_month, b.period_year)}</div>
+                    <div style={{ fontSize: 11, color: 'var(--slate-500)' }}>Meter: {b.prev_reading} → {b.current_reading} m³ ({formatM3(b.usage_m3)})</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 11, color: 'var(--slate-500)' }}>Total Tagihan:</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--primary-700)' }}>{formatRupiah(b.total_amount)}</div>
+                    <div style={{ fontSize: 11, color: 'var(--slate-500)' }}>Tempo: {formatDate(b.due_date)}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

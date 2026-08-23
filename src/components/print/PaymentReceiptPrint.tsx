@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
-import { Printer, CheckCircle, Droplets } from 'lucide-react';
+import { Printer, CheckCircle, Droplets, Share2, Receipt } from 'lucide-react';
 import { Payment, Bill, Customer } from '../../types';
 import { formatRupiah, formatDateTime, formatPeriod } from '../../utils/formatters';
 import { useSettings } from '../../context/SettingsContext';
@@ -22,11 +22,44 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
   customer
 }) => {
   const { settings } = useSettings();
+  const [printMode, setPrintMode] = useState<'standard' | 'thermal'>('standard');
 
   if (!payment) return null;
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = (mode: 'standard' | 'thermal') => {
+    setPrintMode(mode);
+    setTimeout(() => {
+      window.print();
+    }, 100);
+  };
+
+  const handleSendWhatsApp = () => {
+    const custPhone = (customer?.phone || (payment as any).phone || bill?.phone || '').replace(/\D/g, '');
+    let formattedPhone = custPhone;
+    if (formattedPhone.startsWith('0')) {
+      formattedPhone = '62' + formattedPhone.substring(1);
+    }
+
+    const message = `*BUKTI PEMBAYARAN AIR MINUM DESA*\n` +
+      `*${settings.organization_name || 'BUMDes Tirta Sandmosquito'}*\n` +
+      `--------------------------------\n` +
+      `• No. Kuitansi : ${payment.payment_no}\n` +
+      `• No. Pelanggan: ${payment.customer_no || customer?.customer_no || '-'}\n` +
+      `• Nama Warga   : ${payment.customer_name || customer?.full_name || '-'}\n` +
+      `• Periode Tagihan: ${payment.period_month && payment.period_year ? formatPeriod(payment.period_month, payment.period_year) : '-'}\n` +
+      `• Metode Bayar : ${payment.payment_method}\n` +
+      `• Total Dibayar: *${formatRupiah(payment.amount_paid)}*\n` +
+      `• Status       : *LUNAS*\n` +
+      `• Tanggal/Waktu: ${formatDateTime(payment.payment_date || payment.created_at)}\n` +
+      `--------------------------------\n` +
+      `Terima kasih atas pembayaran rekening air tepat waktu.\n` +
+      `_${settings.village_name || 'Kantor Desa'}_`;
+
+    const waUrl = formattedPhone
+      ? `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`
+      : `https://wa.me/?text=${encodeURIComponent(message)}`;
+
+    window.open(waUrl, '_blank');
   };
 
   return (
@@ -41,17 +74,40 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
         </div>
       }
       footer={
-        <>
-          <Button variant="secondary" onClick={onClose}>
-            Tutup
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', width: '100%', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Button
+            variant="success"
+            size="sm"
+            icon={<Share2 size={15} />}
+            onClick={handleSendWhatsApp}
+            title="Kirim bukti pembayaran ke WhatsApp warga"
+          >
+            Kirim ke WhatsApp
           </Button>
-          <Button variant="success" icon={<Printer size={16} />} onClick={handlePrint}>
-            Cetak Kuitansi (Print)
-          </Button>
-        </>
+
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={<Receipt size={15} />}
+              onClick={() => handlePrint('thermal')}
+              title="Cetak struk ukuran 58mm printer kasir thermal"
+            >
+              Struk Thermal (58mm)
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              icon={<Printer size={15} />}
+              onClick={() => handlePrint('standard')}
+            >
+              Cetak Standar (A4)
+            </Button>
+          </div>
+        </div>
       }
     >
-      <div className="printable-area" style={{ padding: '8px' }}>
+      <div className={`printable-area ${printMode === 'thermal' ? 'thermal-receipt-mode' : ''}`} style={{ padding: '8px' }}>
         {/* Receipt Header */}
         <div
           style={{

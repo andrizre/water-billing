@@ -7,18 +7,28 @@ export default defineConfig({
   build: {
     target: 'esnext',
     cssMinify: true,
+    chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
-              return 'react-vendor';
+            if (id.includes('lucide-react')) {
+              return 'icons-vendor';
             }
             if (id.includes('@supabase')) {
               return 'supabase-vendor';
             }
-            if (id.includes('lucide-react')) {
-              return 'lucide-icons';
+            if (
+              id.includes('/react/') ||
+              id.includes('/react-dom/') ||
+              id.includes('/react-router') ||
+              id.includes('/scheduler/') ||
+              id.includes('\\react\\') ||
+              id.includes('\\react-dom\\') ||
+              id.includes('\\react-router') ||
+              id.includes('\\scheduler\\')
+            ) {
+              return 'react-core';
             }
             return 'vendor';
           }

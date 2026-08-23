@@ -6,16 +6,26 @@ import { useToast } from '../../context/ToastContext';
 import { useSettings } from '../../context/SettingsContext';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
+import { usePageTitle } from '../../hooks/usePageTitle';
 
 export const LoginPage: React.FC = () => {
+  usePageTitle('Masuk ke Sistem', 'Portal autentikasi login pengelola dan pelanggan air minum desa.');
   const [username, setUsername] = useState<string>('admin');
   const [password, setPassword] = useState<string>('admin123');
   const [loading, setLoading] = useState<boolean>(false);
 
-  const { login, role } = useAuth();
+  const { login, role, isAuthenticated } = useAuth();
   const { error: toastError, success: toastSuccess } = useToast();
   const { settings } = useSettings();
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (isAuthenticated && role) {
+      if (role === 'customer') navigate('/customer/dashboard', { replace: true });
+      else if (role === 'operator') navigate('/operator/dashboard', { replace: true });
+      else navigate('/admin/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, role, navigate]);
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

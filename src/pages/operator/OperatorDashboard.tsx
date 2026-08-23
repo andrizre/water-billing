@@ -92,7 +92,7 @@ export const OperatorDashboard: React.FC = () => {
                 padding: '6px 12px',
                 borderRadius: 'var(--radius-md)',
                 border: '1px solid var(--slate-200)',
-                backgroundColor: autoRefresh ? 'var(--primary-50)' : '#ffffff',
+                backgroundColor: autoRefresh ? 'var(--primary-50)' : 'var(--slate-50)',
                 color: autoRefresh ? 'var(--primary-700)' : 'var(--slate-600)',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',

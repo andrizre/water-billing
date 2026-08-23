@@ -2,7 +2,7 @@ import React from 'react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import { Badge } from '../common/Badge';
-import { Printer, Droplets } from 'lucide-react';
+import { Printer, Droplets, Share2 } from 'lucide-react';
 import { Bill, Customer, WaterMeter, Tariff } from '../../types';
 import { formatRupiah, formatM3, formatDate, formatPeriod } from '../../utils/formatters';
 import { calculateTieredBillBreakdown } from '../../utils/calculator';
@@ -29,10 +29,41 @@ export const BillInvoiceModal: React.FC<BillInvoiceModalProps> = ({
 
   if (!bill) return null;
 
-  const breakdown = calculateTieredBillBreakdown(bill.usage_m3, tariff);
+  const adminFeeVal = Number(bill.admin_fee !== undefined ? bill.admin_fee : (settings.admin_fee_flat || 2500));
+  const breakdown = calculateTieredBillBreakdown(bill.usage_m3, tariff, false, adminFeeVal);
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleSendWhatsApp = () => {
+    const custPhone = (customer?.phone || bill.phone || '').replace(/\D/g, '');
+    let formattedPhone = custPhone;
+    if (formattedPhone.startsWith('0')) {
+      formattedPhone = '62' + formattedPhone.substring(1);
+    }
+
+    const message = `*TAGIHAN REKENING AIR MINUM DESA*\n` +
+      `*${settings.organization_name || 'BUMDes Tirta Sandmosquito'}*\n` +
+      `--------------------------------\n` +
+      `• No. Tagihan  : ${bill.bill_no}\n` +
+      `• No. Pelanggan: ${bill.customer_no || customer?.customer_no || '-'}\n` +
+      `• Nama Warga   : ${bill.customer_name || customer?.full_name || '-'}\n` +
+      `• Periode      : ${formatPeriod(bill.period_month, bill.period_year)}\n` +
+      `• Stand Meter  : ${bill.prev_reading} m³ -> ${bill.current_reading} m³\n` +
+      `• Total Pakai  : ${formatM3(bill.usage_m3)}\n` +
+      `• *TOTAL TAGIHAN*: *${formatRupiah(bill.total_amount)}*\n` +
+      (bill.balance_due ? `• *Sisa Tunggakan*: *${formatRupiah(bill.balance_due)}*\n` : '') +
+      `• Jatuh Tempo  : ${formatDate(bill.due_date)}\n` +
+      `--------------------------------\n` +
+      `Pembayaran dapat via transfer:\n${settings.bank_account_info || 'Rekening BUMDes'}\natau loket kasir kantor desa.\n` +
+      `_${settings.village_name || 'Kantor BUMDes'}_`;
+
+    const waUrl = formattedPhone
+      ? `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`
+      : `https://wa.me/?text=${encodeURIComponent(message)}`;
+
+    window.open(waUrl, '_blank');
   };
 
   return (
@@ -47,14 +78,25 @@ export const BillInvoiceModal: React.FC<BillInvoiceModalProps> = ({
         </div>
       }
       footer={
-        <>
-          <Button variant="secondary" onClick={onClose}>
-            Tutup
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', width: '100%', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Button
+            variant="success"
+            size="sm"
+            icon={<Share2 size={15} />}
+            onClick={handleSendWhatsApp}
+            title="Kirim rincian tagihan via WhatsApp ke pelanggan"
+          >
+            Kirim ke WhatsApp
           </Button>
-          <Button variant="primary" icon={<Printer size={16} />} onClick={handlePrint}>
-            Cetak Faktur (Print)
-          </Button>
-        </>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button variant="secondary" onClick={onClose}>
+              Tutup
+            </Button>
+            <Button variant="primary" icon={<Printer size={16} />} onClick={handlePrint}>
+              Cetak Faktur (Print)
+            </Button>
+          </div>
+        </div>
       }
     >
       <div className="printable-area" style={{ padding: '4px' }}>
@@ -231,6 +273,16 @@ export const BillInvoiceModal: React.FC<BillInvoiceModalProps> = ({
                   <td style={{ padding: '8px 10px', textAlign: 'right' }}>-</td>
                   <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>
                     {formatRupiah(bill.late_fee)}
+                  </td>
+                </tr>
+              )}
+              {adminFeeVal > 0 && (
+                <tr style={{ borderBottom: '1px solid var(--slate-200)' }}>
+                  <td style={{ padding: '8px 10px' }}>Biaya Administrasi Tagihan</td>
+                  <td style={{ padding: '8px 10px', textAlign: 'center' }}>-</td>
+                  <td style={{ padding: '8px 10px', textAlign: 'right' }}>-</td>
+                  <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>
+                    {formatRupiah(adminFeeVal)}
                   </td>
                 </tr>
               )}

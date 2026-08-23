@@ -1,0 +1,17 @@
+﻿{
+  "name": "BUMDes Tirta Sandmosquito - Sistem Pembayaran Air",
+  "short_name": "Tirta Billing",
+  "description": "Sistem informasi pengelolaan dan pembayaran rekening air minum desa modern.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#0284c7",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

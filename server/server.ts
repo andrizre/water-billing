@@ -38,8 +38,9 @@ function logAudit(userId: string | null, username: string, action: string, detai
 }
 
 // Calculate tiered bill breakdown
-function calculateTieredBill(usageM3: number, tariff: any) {
+function calculateTieredBill(usageM3: number, tariff: any, adminFee: number = 2500) {
   const baseFee = Number(tariff.base_fee || 0);
+  const adminFeeVal = Math.max(0, Number(adminFee || 0));
   const tier1Max = Number(tariff.tier1_max || 10);
   const tier1Rate = Number(tariff.tier1_rate || 2000);
   const tier2Max = Number(tariff.tier2_max || 20);
@@ -70,7 +71,7 @@ function calculateTieredBill(usageM3: number, tariff: any) {
   const tier2Amount = tier2Usage * tier2Rate;
   const tier3Amount = tier3Usage * tier3Rate;
   const usageAmount = tier1Amount + tier2Amount + tier3Amount;
-  const totalAmount = baseFee + usageAmount;
+  const totalAmount = baseFee + usageAmount + adminFeeVal;
 
   return {
     base_fee: baseFee,
@@ -81,6 +82,7 @@ function calculateTieredBill(usageM3: number, tariff: any) {
     tier3_usage: tier3Usage,
     tier3_amount: tier3Amount,
     usage_amount: usageAmount,
+    admin_fee: adminFeeVal,
     total_amount: totalAmount
   };
 }
@@ -529,20 +531,22 @@ async function handleApiAction(action: string, data: any, auth: any): Promise<an
 
     let billInfo = null;
     if (auto_generate_bill) {
-      // Lookup customer tariff
+      // Lookup customer tariff & admin fee setting
       const cust = db.query("SELECT tariff_id FROM customers WHERE id = ?").get(customer_id) as any;
       const tariff = db.query("SELECT * FROM tariffs WHERE id = ?").get(cust?.tariff_id || "TRF-01") as any;
+      const adminSetting = db.query("SELECT value FROM settings WHERE key = 'admin_fee_flat'").get() as any;
+      const adminFee = Number(adminSetting?.value || 2500);
 
-      const breakdown = calculateTieredBill(usageM3, tariff);
+      const breakdown = calculateTieredBill(usageM3, tariff, adminFee);
       const billId = `INV-${Date.now().toString().slice(-6)}`;
       const billNo = `INV-${period_year}${String(period_month).padStart(2, "0")}-${Date.now().toString().slice(-4)}`;
 
       const dueDate = new Date(Number(period_year), Number(period_month), 20).toISOString().substring(0, 10);
 
       db.run(
-        `INSERT INTO bills (id, bill_no, customer_id, reading_id, period_month, period_year, prev_reading, current_reading, usage_m3, base_fee, usage_amount, penalty_fee, total_amount, paid_amount, balance_due, due_date, status, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, 0, ?, ?, 'Belum Dibayar', ?, ?)`,
-        [billId, billNo, customer_id, readingId, Number(period_month), Number(period_year), Number(prev_reading), Number(current_reading), usageM3, breakdown.base_fee, breakdown.usage_amount, breakdown.total_amount, breakdown.total_amount, dueDate, now, now]
+        `INSERT INTO bills (id, bill_no, customer_id, reading_id, period_month, period_year, prev_reading, current_reading, usage_m3, base_fee, usage_amount, penalty_fee, admin_fee, total_amount, paid_amount, balance_due, due_date, status, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, 0, ?, ?, 'Belum Dibayar', ?, ?)`,
+        [billId, billNo, customer_id, readingId, Number(period_month), Number(period_year), Number(prev_reading), Number(current_reading), usageM3, breakdown.base_fee, breakdown.usage_amount, breakdown.admin_fee, breakdown.total_amount, breakdown.total_amount, dueDate, now, now]
       );
       billInfo = { bill_id: billId, bill_no: billNo, total_amount: breakdown.total_amount };
     }
@@ -605,19 +609,22 @@ async function handleApiAction(action: string, data: any, auth: any): Promise<an
       AND r.id NOT IN (SELECT reading_id FROM bills WHERE period_month = ? AND period_year = ?)
     `).all(month, year, month, year) as any[];
 
+    const adminSetting = db.query("SELECT value FROM settings WHERE key = 'admin_fee_flat'").get() as any;
+    const adminFee = Number(adminSetting?.value || 2500);
+
     let count = 0;
     for (const r of readings) {
       const tariff = db.query("SELECT * FROM tariffs WHERE id = ?").get(r.tariff_id || "TRF-01") as any;
-      const breakdown = calculateTieredBill(r.usage_m3, tariff);
+      const breakdown = calculateTieredBill(r.usage_m3, tariff, adminFee);
 
       const billId = `INV-${Date.now().toString().slice(-4)}${count}`;
       const billNo = `INV-${year}${String(month).padStart(2, "0")}-${String(count + 100).padStart(4, "0")}`;
       const dueDate = new Date(year, month, 20).toISOString().substring(0, 10);
 
       db.run(
-        `INSERT INTO bills (id, bill_no, customer_id, reading_id, period_month, period_year, prev_reading, current_reading, usage_m3, base_fee, usage_amount, penalty_fee, total_amount, paid_amount, balance_due, due_date, status, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, 0, ?, ?, 'Belum Dibayar', ?, ?)`,
-        [billId, billNo, r.customer_id, r.id, month, year, r.prev_reading, r.current_reading, r.usage_m3, breakdown.base_fee, breakdown.usage_amount, breakdown.total_amount, breakdown.total_amount, dueDate, now, now]
+        `INSERT INTO bills (id, bill_no, customer_id, reading_id, period_month, period_year, prev_reading, current_reading, usage_m3, base_fee, usage_amount, penalty_fee, admin_fee, total_amount, paid_amount, balance_due, due_date, status, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, 0, ?, ?, 'Belum Dibayar', ?, ?)`,
+        [billId, billNo, r.customer_id, r.id, month, year, r.prev_reading, r.current_reading, r.usage_m3, breakdown.base_fee, breakdown.usage_amount, breakdown.admin_fee, breakdown.total_amount, breakdown.total_amount, dueDate, now, now]
       );
       count++;
     }

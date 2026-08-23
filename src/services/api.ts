@@ -234,6 +234,14 @@ async function handleSupabaseCall<T = any>(action: string, data: any): Promise<T
     case 'auth_register':
       return (await supabaseApiService.registerWithToken(data)) as T;
 
+    // Maintenance Expenses
+    case 'maintenance_list':
+      return (await supabaseApiService.getMaintenanceExpenses(data)) as T;
+    case 'maintenance_create':
+      return (await supabaseApiService.createMaintenanceExpense(data)) as T;
+    case 'maintenance_delete':
+      return (await supabaseApiService.deleteMaintenanceExpense(data.id)) as T;
+
     default:
       throw new Error(`Aksi "${action}" tidak didukung pada Supabase.`);
   }
@@ -457,6 +465,14 @@ async function handleMockCall<T = any>(action: string, data: any): Promise<T> {
     case 'auth_register':
       return (await mockApiService.registerWithToken(data)) as T;
 
+    // Maintenance Expenses
+    case 'maintenance_list':
+      return (await mockApiService.getMaintenanceExpenses(data)) as T;
+    case 'maintenance_create':
+      return (await mockApiService.createMaintenanceExpense(data)) as T;
+    case 'maintenance_delete':
+      return (await mockApiService.deleteMaintenanceExpense(data.id)) as T;
+
     default:
       throw new Error(`Aksi "${action}" tidak didukung.`);
   }
@@ -550,6 +566,11 @@ export const api = {
   deleteRegistrationToken: (id: string) => callApi('tokens_delete', { id }),
   verifyRegistrationToken: (token: string, expectedType: string = 'registration') => callApi('tokens_verify', { token, expectedType }),
   registerWithToken: (data: any) => callApi('auth_register', data),
+
+  // Maintenance Expenses
+  getMaintenanceExpenses: (params?: any) => callApi('maintenance_list', params),
+  createMaintenanceExpense: (data: any) => callApi('maintenance_create', data),
+  deleteMaintenanceExpense: (id: string) => callApi('maintenance_delete', { id }),
 
   // Reset demo
   resetMockData: () => mockApiService.resetToDefault(),

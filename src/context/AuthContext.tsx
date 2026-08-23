@@ -30,27 +30,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (savedToken && savedUser) {
         setUser(savedUser);
       } else {
-        // Default demo login as Admin for instant preview if desired, or null
-        const defaultAdmin = initialUsers[0];
-        setUser({
-          id: defaultAdmin.id,
-          username: defaultAdmin.username,
-          fullName: defaultAdmin.full_name,
-          role: defaultAdmin.role,
-          email: defaultAdmin.email,
-          phone: defaultAdmin.phone,
-          customerId: ''
-        });
-        storage.setToken('demo_admin_token');
-        storage.setUser({
-          id: defaultAdmin.id,
-          username: defaultAdmin.username,
-          fullName: defaultAdmin.full_name,
-          role: defaultAdmin.role,
-          email: defaultAdmin.email,
-          phone: defaultAdmin.phone,
-          customerId: ''
-        });
+        setUser(null);
       }
       setLoading(false);
     };

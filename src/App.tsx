@@ -25,6 +25,7 @@ const AnnouncementsPage = lazy(() => import('./pages/admin/AnnouncementsPage').t
 const ComplaintsManagementPage = lazy(() => import('./pages/admin/ComplaintsManagementPage').then(m => ({ default: m.ComplaintsManagementPage })));
 const SubscriptionRequestsPage = lazy(() => import('./pages/admin/SubscriptionRequestsPage').then(m => ({ default: m.SubscriptionRequestsPage })));
 const TokensManagementPage = lazy(() => import('./pages/admin/TokensManagementPage').then(m => ({ default: m.TokensManagementPage })));
+const MaintenanceExpensesPage = lazy(() => import('./pages/admin/MaintenanceExpensesPage').then(m => ({ default: m.MaintenanceExpensesPage })));
 
 // Lazy Loaded Operator Pages
 const OperatorDashboard = lazy(() => import('./pages/operator/OperatorDashboard').then(m => ({ default: m.OperatorDashboard })));
@@ -199,6 +200,14 @@ export const App: React.FC = () => {
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <PaymentManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/maintenance"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <MaintenanceExpensesPage />
                 </ProtectedRoute>
               }
             />

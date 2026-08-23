@@ -16,19 +16,21 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Water Billing" />
+    <link rel="manifest" href="/manifest.webmanifest" />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="id_ID" />
     <meta property="og:site_name" content="Sandmosquito Water Billing" />
-    <meta property="og:title" content="Sandmosquito Water Billing - Tagihan Air Minum Desa Modern" />
-    <meta property="og:description" content="Sistem informasi penagihan rekening air desa mandiri dengan integrasi Supabase, SQLite, dan Google Sheets." />
+    <meta property="og:title" content="Sandmosquito Water Billing - Sistem Tagihan Air Desa Modern" />
+    <meta property="og:description" content="Aplikasi pengelolaan tagihan air minum desa modern dengan tarif bertingkat, pencatatan meter mandiri, kasir loket pembayaran, dan portal warga." />
     <meta property="og:image" content="/favicon.svg" />
 
     <!-- Twitter Cards -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Sandmosquito Water Billing - Tagihan Air Desa" />
     <meta name="twitter:description" content="Aplikasi penagihan air desa dengan multi-database backend, pencatatan meter, dan kasir loket." />
+    <meta name="twitter:image" content="/favicon.svg" />
 
     <!-- Google Fonts Preconnect & Optimized Loading -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -38,20 +40,33 @@
       <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     </noscript>
 
-    <!-- Structured Data JSON-LD for SEO -->
+    <!-- Structured Data JSON-LD for SEO & Local Search -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebApplication",
-      "name": "Sandmosquito Water Billing",
-      "applicationCategory": "BusinessApplication",
-      "operatingSystem": "Web, Mobile Browser",
-      "description": "Sistem informasi pengelolaan tagihan air minum desa modern dengan tarif bertingkat dan multi-backend database.",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "IDR"
-      }
+      "@graph": [
+        {
+          "@type": "WebApplication",
+          "@id": "https://sandmosquito-water-billing.local/#app",
+          "name": "Sandmosquito Water Billing",
+          "applicationCategory": "BusinessApplication",
+          "operatingSystem": "Web, Mobile Browser, PWA",
+          "description": "Sistem informasi pengelolaan tagihan air minum desa modern dengan tarif bertingkat, pencatatan meter bulanan, kasir pembayaran, dan portal warga.",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "IDR"
+          }
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://sandmosquito-water-billing.local/#org",
+          "name": "BUMDes Tirta Sandmosquito",
+          "url": "https://sandmosquito-water-billing.local",
+          "logo": "/favicon.svg",
+          "description": "Badan Usaha Milik Desa unit pengelola air bersih dan sanitasi desa."
+        }
+      ]
     }
     </script>
   </head>

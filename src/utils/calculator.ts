@@ -6,10 +6,12 @@ import { Tariff, BillBreakdown } from '../types';
 export function calculateTieredBillBreakdown(
   usageM3: number,
   tariff: Tariff | Partial<Tariff> | null | undefined,
-  includeLateFee: boolean = false
+  includeLateFee: boolean = false,
+  adminFee: number = 0
 ): BillBreakdown {
   const usage = Math.max(0, Number(usageM3 || 0));
   const baseFee = Number(tariff?.base_fee ?? 5000);
+  const adminFeeVal = Math.max(0, Number(adminFee || 0));
 
   const tier1Max = Number(tariff?.tier1_max ?? 10);
   const tier1Rate = Number(tariff?.tier1_rate ?? 2000);
@@ -42,7 +44,7 @@ export function calculateTieredBillBreakdown(
   const tier2Amount = tier2Usage * tier2Rate;
   const tier3Amount = tier3Usage * tier3Rate;
   const usageAmount = tier1Amount + tier2Amount + tier3Amount;
-  const totalAmount = baseFee + usageAmount + lateFeeVal;
+  const totalAmount = baseFee + usageAmount + lateFeeVal + adminFeeVal;
 
   return {
     usage_m3: usage,
@@ -58,6 +60,7 @@ export function calculateTieredBillBreakdown(
     tier3_amount: tier3Amount,
     usage_amount: usageAmount,
     late_fee: lateFeeVal,
+    admin_fee: adminFeeVal,
     total_amount: totalAmount
   };
 }
