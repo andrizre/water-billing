@@ -72,7 +72,7 @@ export const OperatorReportsPage: React.FC = () => {
         title="Laporan Operasional Petugas"
         subtitle="Rekapitulasi penerimaan uang kas loket desa dan pencatatan meteran lapangan."
         action={
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <Button variant="secondary" icon={<Download size={16} />} onClick={handleExport}>
               Export CSV
             </Button>
@@ -83,18 +83,20 @@ export const OperatorReportsPage: React.FC = () => {
         }
       />
 
-      <Tabs tabs={tabs} activeTab={activeTab} onChange={(t) => setActiveTab(t)} />
+      <div style={{ width: '100%', overflowX: 'auto' }}>
+        <Tabs tabs={tabs} activeTab={activeTab} onChange={(t) => setActiveTab(t)} />
+      </div>
 
       {/* Summary Box */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          gap: 16,
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
+          gap: 14,
           marginBottom: 20
         }}
       >
-        <div style={{ backgroundColor: '#ffffff', padding: 18, borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
+        <div style={{ backgroundColor: 'var(--card-bg)', padding: 18, borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
           <div style={{ fontSize: 12, color: 'var(--slate-500)', fontWeight: 600 }}>
             {activeTab === 'cashier' ? 'TOTAL TRANSAKSI KAS' : 'TOTAL RUMAH TERCATAT'}
           </div>
@@ -103,7 +105,7 @@ export const OperatorReportsPage: React.FC = () => {
           </div>
         </div>
 
-        <div style={{ backgroundColor: '#ffffff', padding: 18, borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
+        <div style={{ backgroundColor: 'var(--card-bg)', padding: 18, borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
           <div style={{ fontSize: 12, color: 'var(--slate-500)', fontWeight: 600 }}>
             {activeTab === 'cashier' ? 'TOTAL UANG DITERIMA' : 'TOTAL VOLUME AIR TERCATAT'}
           </div>

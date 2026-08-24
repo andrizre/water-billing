@@ -8,7 +8,10 @@ import {
   Trash2,
   Phone,
   MapPin,
-  FileText
+  FileText,
+  ShieldCheck,
+  HeartHandshake,
+  Gift
 } from 'lucide-react';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Card } from '../../components/common/Card';
@@ -25,7 +28,8 @@ import { usePagination } from '../../hooks/usePagination';
 import { useToast } from '../../context/ToastContext';
 import { api } from '../../services/api';
 import { exportToCsv } from '../../utils/exportCsv';
-import { Customer, Tariff } from '../../types';
+import { formatRupiah } from '../../utils/formatters';
+import { Customer, Tariff, SubsidyType } from '../../types';
 
 export const CustomerManagement: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -34,6 +38,7 @@ export const CustomerManagement: React.FC = () => {
   const [search, setSearch] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [rtrwFilter, setRtrwFilter] = useState<string>('');
+  const [subsidyFilter, setSubsidyFilter] = useState<string>('');
 
   // Modal State
   const [modalOpen, setModalOpen] = useState<boolean>(false);
@@ -52,7 +57,11 @@ export const CustomerManagement: React.FC = () => {
     tariff_id: 'TRF-01',
     status: 'Aktif',
     meter_no: '',
-    initial_reading: '0'
+    initial_reading: '0',
+    is_subsidized: false,
+    subsidy_type: 'max_tagihan' as SubsidyType,
+    subsidy_max_amount: '20000',
+    subsidy_notes: ''
   });
 
   const debouncedSearch = useDebounce(search, 300);
@@ -70,18 +79,23 @@ export const CustomerManagement: React.FC = () => {
   const fetchCustomers = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await api.getCustomers({
+      let data = await api.getCustomers({
         search: debouncedSearch,
         status: statusFilter,
         rt_rw: rtrwFilter
       });
+      if (subsidyFilter === 'subsidized') {
+        data = data.filter((c: Customer) => c.is_subsidized);
+      } else if (subsidyFilter === 'regular') {
+        data = data.filter((c: Customer) => !c.is_subsidized);
+      }
       setCustomers(data);
     } catch (err: any) {
       toastError(err.message || 'Gagal memuat data pelanggan.');
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearch, statusFilter, rtrwFilter, toastError]);
+  }, [debouncedSearch, statusFilter, rtrwFilter, subsidyFilter, toastError]);
 
   useEffect(() => {
     fetchTariffs();
@@ -105,7 +119,11 @@ export const CustomerManagement: React.FC = () => {
       tariff_id: tariffs[0]?.id || 'TRF-01',
       status: 'Aktif',
       meter_no: '',
-      initial_reading: '0'
+      initial_reading: '0',
+      is_subsidized: false,
+      subsidy_type: 'max_tagihan',
+      subsidy_max_amount: '20000',
+      subsidy_notes: ''
     });
     setModalOpen(true);
   };
@@ -122,7 +140,11 @@ export const CustomerManagement: React.FC = () => {
       tariff_id: c.tariff_id || tariffs[0]?.id || 'TRF-01',
       status: c.status || 'Aktif',
       meter_no: c.meter_no || '',
-      initial_reading: String(c.current_reading || 0)
+      initial_reading: String(c.current_reading || 0),
+      is_subsidized: Boolean(c.is_subsidized),
+      subsidy_type: c.subsidy_type || 'max_tagihan',
+      subsidy_max_amount: String(c.subsidy_max_amount !== undefined ? c.subsidy_max_amount : 20000),
+      subsidy_notes: c.subsidy_notes || ''
     });
     setModalOpen(true);
   };
@@ -139,13 +161,15 @@ export const CustomerManagement: React.FC = () => {
       if (editingCustomer) {
         await api.updateCustomer({
           id: editingCustomer.id,
-          ...formData
+          ...formData,
+          subsidy_max_amount: Number(formData.subsidy_max_amount || 0)
         });
         success('Data pelanggan berhasil diperbarui.');
       } else {
         await api.createCustomer({
           ...formData,
-          initial_reading: Number(formData.initial_reading || 0)
+          initial_reading: Number(formData.initial_reading || 0),
+          subsidy_max_amount: Number(formData.subsidy_max_amount || 0)
         });
         success('Pelanggan baru berhasil ditambahkan.');
       }
@@ -240,9 +264,50 @@ export const CustomerManagement: React.FC = () => {
       )
     },
     {
-      header: 'Kategori Tarif',
+      header: 'Tarif & Subsidi',
       render: (c: Customer) => (
-        <Badge variant="neutral">{c.tariff_name || 'Rumah Tangga'}</Badge>
+        <div>
+          <Badge variant="neutral">{c.tariff_name || 'Rumah Tangga'}</Badge>
+          {c.is_subsidized && (
+            <div style={{ marginTop: 4 }}>
+              {c.subsidy_type === 'gratis' ? (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 3,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                    color: 'var(--success-700)',
+                    padding: '2px 7px',
+                    borderRadius: 4,
+                    border: '1px solid rgba(16, 185, 129, 0.3)'
+                  }}
+                >
+                  <ShieldCheck size={11} /> 100% Gratis
+                </span>
+              ) : (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 3,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    backgroundColor: 'rgba(2, 132, 199, 0.12)',
+                    color: 'var(--primary-700)',
+                    padding: '2px 7px',
+                    borderRadius: 4,
+                    border: '1px solid rgba(2, 132, 199, 0.25)'
+                  }}
+                >
+                  <HeartHandshake size={11} /> Maks. {formatRupiah(c.subsidy_max_amount || 20000)}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
       )
     },
     {
@@ -281,9 +346,9 @@ export const CustomerManagement: React.FC = () => {
     <div>
       <PageHeader
         title="Manajemen Pelanggan Air"
-        subtitle="Kelola data sambungan air rumah warga, nomor meteran, dan penetapan golongan tarif."
+        subtitle="Kelola data sambungan air rumah warga, penetapan subsidi desa, dan golongan tarif."
         action={
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <Button variant="secondary" icon={<Download size={16} />} onClick={handleExportCsv}>
               Export CSV
             </Button>
@@ -296,8 +361,8 @@ export const CustomerManagement: React.FC = () => {
 
       {/* Filter & Search Bar */}
       <Card bodyClassName="p-4" style={{ marginBottom: 20 }}>
-        <div className="filter-bar" style={{ margin: 0 }}>
-          <div className="filter-group" style={{ flex: 1, minWidth: 260 }}>
+        <div className="filter-bar" style={{ margin: 0, gap: 12 }}>
+          <div className="filter-group" style={{ flex: 1, minWidth: 240 }}>
             <div style={{ width: '100%', maxWidth: 360 }}>
               <Input
                 placeholder="Cari nama, nomor pelanggan, no HP..."
@@ -308,8 +373,20 @@ export const CustomerManagement: React.FC = () => {
             </div>
           </div>
 
-          <div className="filter-group">
-            <div style={{ width: 180 }}>
+          <div className="filter-group" style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+            <div style={{ width: 170 }}>
+              <Select
+                options={[
+                  { label: 'Semua Kategori Warga', value: '' },
+                  { label: 'Warga Reguler', value: 'regular' },
+                  { label: 'Warga Penerima Subsidi', value: 'subsidized' }
+                ]}
+                value={subsidyFilter}
+                onChange={(e) => setSubsidyFilter(e.target.value)}
+              />
+            </div>
+
+            <div style={{ width: 160 }}>
               <Select
                 options={rtrwOptions}
                 value={rtrwFilter}
@@ -317,7 +394,7 @@ export const CustomerManagement: React.FC = () => {
               />
             </div>
 
-            <div style={{ width: 150 }}>
+            <div style={{ width: 140 }}>
               <Select
                 options={[
                   { label: 'Semua Status', value: '' },
@@ -428,6 +505,69 @@ export const CustomerManagement: React.FC = () => {
             value={formData.address}
             onChange={(e) => setFormData({ ...formData, address: e.target.value })}
           />
+
+          {/* Subsidy Configuration Section */}
+          <div
+            style={{
+              backgroundColor: formData.is_subsidized ? 'rgba(16, 185, 129, 0.08)' : 'var(--slate-50)',
+              border: formData.is_subsidized ? '1px solid var(--success-300)' : '1px solid var(--slate-200)',
+              borderRadius: 'var(--radius-md)',
+              padding: 14,
+              marginTop: 12,
+              marginBottom: 12,
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13.5, color: formData.is_subsidized ? 'var(--success-800)' : 'var(--slate-800)' }}>
+              <input
+                type="checkbox"
+                checked={formData.is_subsidized}
+                onChange={(e) => setFormData({ ...formData, is_subsidized: e.target.checked })}
+                style={{ width: 16, height: 16, cursor: 'pointer' }}
+              />
+              <HeartHandshake size={16} color={formData.is_subsidized ? 'var(--success-600)' : 'var(--slate-500)'} />
+              <span>Tetapkan sebagai Warga Penerima Subsidi Air Desa</span>
+            </label>
+
+            {formData.is_subsidized && (
+              <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <Select
+                    label="Tipe Subsidi"
+                    value={formData.subsidy_type}
+                    onChange={(e) => setFormData({ ...formData, subsidy_type: e.target.value as SubsidyType })}
+                    options={[
+                      { label: '100% Tagihan Gratis (Rp 0)', value: 'gratis' },
+                      { label: 'Plafon Maksimal Bayar (Capped)', value: 'max_tagihan' }
+                    ]}
+                    required
+                  />
+                  {formData.subsidy_type === 'max_tagihan' ? (
+                    <Input
+                      type="number"
+                      label="Batas Maksimal Bayar per Bulan (Rp)"
+                      placeholder="Contoh: 20000"
+                      value={formData.subsidy_max_amount}
+                      onChange={(e) => setFormData({ ...formData, subsidy_max_amount: e.target.value })}
+                      hint="Berapapun pemakaian airnya, warga cukup bayar maksimal nominal ini"
+                      required
+                    />
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', fontSize: 12, color: 'var(--success-700)', fontWeight: 600, padding: '10px 0' }}>
+                      <Gift size={16} style={{ marginRight: 6 }} /> Tagihan bulanan otomatis Rp 0 (100% ditanggung BUMDes).
+                    </div>
+                  )}
+                </div>
+
+                <Input
+                  label="Keterangan / Alasan Subsidi"
+                  placeholder="Contoh: Warga Lansia / Kurang Mampu / Bantuan Khusus BUMDes / Rumah Ibadah"
+                  value={formData.subsidy_notes}
+                  onChange={(e) => setFormData({ ...formData, subsidy_notes: e.target.value })}
+                />
+              </div>
+            )}
+          </div>
 
           {!editingCustomer && (
             <div

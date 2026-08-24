@@ -29,6 +29,7 @@ export const OperatorManagement: React.FC = () => {
     full_name: '',
     password: '',
     role: 'operator' as any,
+    assigned_rt: 'RT 01',
     email: '',
     phone: '',
     is_active: true
@@ -62,6 +63,7 @@ export const OperatorManagement: React.FC = () => {
       full_name: '',
       password: '',
       role: 'operator',
+      assigned_rt: 'RT 01',
       email: '',
       phone: '',
       is_active: true
@@ -76,6 +78,7 @@ export const OperatorManagement: React.FC = () => {
       full_name: u.full_name,
       password: '',
       role: u.role,
+      assigned_rt: u.assigned_rt || 'Semua RT',
       email: u.email || '',
       phone: u.phone || '',
       is_active: u.is_active
@@ -174,6 +177,18 @@ export const OperatorManagement: React.FC = () => {
       )
     },
     {
+      header: 'Wilayah Tugas (RT)',
+      render: (u: User) => (
+        u.role === 'operator' ? (
+          <Badge variant="info">
+            {u.assigned_rt || 'Semua RT'}
+          </Badge>
+        ) : (
+          <span style={{ fontSize: 12, color: 'var(--slate-500)' }}>Semua Wilayah</span>
+        )
+      )
+    },
+    {
       header: 'Status Akun',
       render: (u: User) => <Badge status={u.is_active ? 'Aktif' : 'Nonaktif'} />
     },
@@ -221,7 +236,7 @@ export const OperatorManagement: React.FC = () => {
     <div>
       <PageHeader
         title="Manajemen Operator & Pengguna Sistem"
-        subtitle="Kelola hak akses petugas loket, pencatat meter lapangan, dan administrator desa."
+        subtitle="Kelola hak akses petugas loket, penugasan wilayah RT pencatat meter, dan administrator desa."
         action={
           <Button variant="primary" icon={<Plus size={16} />} onClick={handleOpenCreate}>
             Tambah Operator Baru
@@ -306,6 +321,27 @@ export const OperatorManagement: React.FC = () => {
               onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'true' })}
             />
           </div>
+
+          {formData.role === 'operator' && (
+            <div style={{ marginBottom: 14 }}>
+              <Select
+                label="Wilayah Penugasan RT (Tugas Lapangan)"
+                options={[
+                  { label: 'RT 01 (Dusun Krajan)', value: 'RT 01' },
+                  { label: 'RT 02 (Dusun Krajan)', value: 'RT 02' },
+                  { label: 'RT 03 (Dusun Kebon)', value: 'RT 03' },
+                  { label: 'RT 04 (Dusun Kebon)', value: 'RT 04' },
+                  { label: 'RT 05 (Dusun Selatan)', value: 'RT 05' },
+                  { label: 'Semua RT (Akses Seluruh Wilayah)', value: 'Semua RT' }
+                ]}
+                value={formData.assigned_rt || 'RT 01'}
+                onChange={(e) => setFormData({ ...formData, assigned_rt: e.target.value })}
+              />
+              <div style={{ fontSize: 11.5, color: 'var(--slate-500)', marginTop: 4 }}>
+                * Akun operator ini hanya akan mencatat meter dan mengelola data warga di wilayah RT yang ditugaskan.
+              </div>
+            </div>
+          )}
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             <Input

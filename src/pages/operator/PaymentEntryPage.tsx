@@ -15,6 +15,7 @@ import { Select } from '../../components/common/Select';
 import { Badge } from '../../components/common/Badge';
 import { Modal } from '../../components/common/Modal';
 import { PaymentReceiptModal } from '../../components/print/PaymentReceiptPrint';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useSettings } from '../../context/SettingsContext';
 import { api } from '../../services/api';
@@ -22,6 +23,7 @@ import { Bill, Payment, PaymentMethod } from '../../types';
 import { formatRupiah, formatM3, formatPeriod } from '../../utils/formatters';
 
 export const PaymentEntryPage: React.FC = () => {
+  const { user, role } = useAuth();
   const [unpaidBills, setUnpaidBills] = useState<Bill[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -46,7 +48,10 @@ export const PaymentEntryPage: React.FC = () => {
     try {
       setLoading(true);
       const data = await api.getBills();
-      const unpaid = data.filter((b: Bill) => b.status !== 'Lunas');
+      let unpaid = data.filter((b: Bill) => b.status !== 'Lunas');
+      if (role === 'operator' && user?.assigned_rt && user.assigned_rt !== 'Semua RT') {
+        unpaid = unpaid.filter((b: Bill) => b.rt_rw && b.rt_rw.includes(user.assigned_rt!));
+      }
       setUnpaidBills(unpaid);
       if (unpaid.length > 0 && !selectedBill) {
         handleSelectBill(unpaid[0]);
@@ -56,7 +61,7 @@ export const PaymentEntryPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [toastError, selectedBill]);
+  }, [toastError, selectedBill, role, user?.assigned_rt]);
 
   useEffect(() => {
     fetchUnpaidBills();
@@ -135,6 +140,16 @@ export const PaymentEntryPage: React.FC = () => {
       <PageHeader
         title="Loket Kasir Pembayaran Rekening Air (POS)"
         subtitle="Pencatatan pembayaran tagihan warga secara langsung, kalkulator kembalian uang tunai, dan cetak kuitansi."
+        action={
+          user?.assigned_rt && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, backgroundColor: 'var(--primary-50)', border: '1px solid var(--primary-200)', padding: '6px 12px', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 700, color: 'var(--primary-700)' }}>
+              <span>Wilayah Tugas:</span>
+              <span style={{ backgroundColor: 'var(--primary-600)', color: '#fff', padding: '2px 8px', borderRadius: 4, fontSize: 12 }}>
+                {user.assigned_rt}
+              </span>
+            </div>
+          )
+        }
       />
 
       <div className="responsive-grid-2">

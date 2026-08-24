@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, Shield, User, Wrench, Search, Database, Cloud, HardDrive, RefreshCw, Zap, Moon, Sun } from 'lucide-react';
+import { Menu, Search, Database, Cloud, HardDrive, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { DarkModeToggle } from '../common/DarkModeToggle';
 import { getActiveBackend } from '../../services/api';
 import { isSupabaseConfigured } from '../../services/supabaseClient';
 
@@ -10,21 +10,7 @@ export interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
-  const { role, switchRoleDemo } = useAuth();
   const [backend, setBackend] = useState<string>('detecting');
-  const [isDark, setIsDark] = useState<boolean>(() => {
-    return localStorage.getItem('sandmosquito_theme') === 'dark';
-  });
-
-  useEffect(() => {
-    if (isDark) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-      localStorage.setItem('sandmosquito_theme', 'dark');
-    } else {
-      document.documentElement.removeAttribute('data-theme');
-      localStorage.setItem('sandmosquito_theme', 'light');
-    }
-  }, [isDark]);
 
   useEffect(() => {
     // Check active backend
@@ -37,10 +23,6 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
     const interval = setInterval(checkBackend, 3000);
     return () => clearInterval(interval);
   }, []);
-
-  const toggleTheme = () => {
-    setIsDark(!isDark);
-  };
 
   const getBackendBadge = () => {
     switch (backend) {
@@ -166,59 +148,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
       </div>
 
       <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        {/* Dark Mode Toggle Button */}
-        <button
-          type="button"
-          onClick={toggleTheme}
-          title={isDark ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap'}
-          style={{
-            background: 'none',
-            border: '1px solid var(--slate-200)',
-            borderRadius: 'var(--radius-md)',
-            padding: '6px 8px',
-            cursor: 'pointer',
-            color: 'var(--slate-600)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: 'var(--slate-50)',
-            transition: 'all 0.15s ease'
-          }}
-          className="hover-lift"
-        >
-          {isDark ? <Sun size={15} color="#f59e0b" /> : <Moon size={15} color="var(--slate-600)" />}
-        </button>
-
-        {/* Role Demo Switcher */}
-        <div className="demo-role-switcher" title="Ganti role cepat untuk pengujian fitur">
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--slate-400)', padding: '0 4px' }}>
-            ROLE:
-          </span>
-          <button
-            type="button"
-            className={`demo-role-btn ${role === 'admin' ? 'active' : ''}`}
-            onClick={() => switchRoleDemo('admin')}
-          >
-            <Shield size={12} style={{ marginRight: 2, verticalAlign: -2 }} />
-            <span>Admin</span>
-          </button>
-          <button
-            type="button"
-            className={`demo-role-btn ${role === 'operator' ? 'active' : ''}`}
-            onClick={() => switchRoleDemo('operator')}
-          >
-            <Wrench size={12} style={{ marginRight: 2, verticalAlign: -2 }} />
-            <span>Operator</span>
-          </button>
-          <button
-            type="button"
-            className={`demo-role-btn ${role === 'customer' ? 'active' : ''}`}
-            onClick={() => switchRoleDemo('customer')}
-          >
-            <User size={12} style={{ marginRight: 2, verticalAlign: -2 }} />
-            <span>Warga</span>
-          </button>
-        </div>
+        <DarkModeToggle />
       </div>
     </header>
   );

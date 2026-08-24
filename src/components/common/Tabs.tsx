@@ -21,8 +21,11 @@ export const Tabs: React.FC<TabsProps> = ({ tabs, activeTab, onChange }) => {
         alignItems: 'center',
         gap: 4,
         borderBottom: '1px solid var(--slate-200)',
-        marginBottom: 12,
+        marginBottom: 16,
+        maxWidth: '100%',
         overflowX: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        scrollbarWidth: 'thin',
         paddingBottom: 2
       }}
     >
@@ -36,9 +39,9 @@ export const Tabs: React.FC<TabsProps> = ({ tabs, activeTab, onChange }) => {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 6,
-              padding: '7px 12px',
-              fontSize: 13,
+              gap: 7,
+              padding: '9px 15px',
+              fontSize: 13.5,
               fontWeight: isActive ? 700 : 500,
               color: isActive ? 'var(--primary-700)' : 'var(--slate-600)',
               backgroundColor: isActive ? 'var(--primary-50)' : 'transparent',

@@ -164,6 +164,10 @@ export const initialCustomers: Customer[] = [
     tariff_id: 'TRF-01',
     tariff_name: 'Rumah Tangga Standar',
     status: 'Aktif',
+    is_subsidized: true,
+    subsidy_type: 'max_tagihan',
+    subsidy_max_amount: 20000,
+    subsidy_notes: 'Subsidi BUMDes: Plafon Maks. Rp 20.000 (Lansia / Bantuan Desa)',
     created_at: '2026-01-12 10:00:00'
   },
   {
@@ -180,6 +184,7 @@ export const initialCustomers: Customer[] = [
     tariff_id: 'TRF-01',
     tariff_name: 'Rumah Tangga Standar',
     status: 'Aktif',
+    is_subsidized: false,
     created_at: '2026-01-15 11:00:00'
   },
   {
@@ -196,6 +201,7 @@ export const initialCustomers: Customer[] = [
     tariff_id: 'TRF-02',
     tariff_name: 'Niaga & UMKM Desa',
     status: 'Aktif',
+    is_subsidized: false,
     created_at: '2026-01-20 13:00:00'
   },
   {
@@ -212,6 +218,10 @@ export const initialCustomers: Customer[] = [
     tariff_id: 'TRF-03',
     tariff_name: 'Sosial & Tempat Ibadah',
     status: 'Aktif',
+    is_subsidized: true,
+    subsidy_type: 'gratis',
+    subsidy_max_amount: 0,
+    subsidy_notes: 'Subsidi 100% Gratis (Tempat Ibadah & Fasilitas Sosial)',
     created_at: '2026-01-25 14:00:00'
   }
 ];
@@ -230,10 +240,22 @@ export const initialUsers: User[] = [
   {
     id: 'USR-0002',
     username: 'operator',
-    full_name: 'Petugas Lapangan',
+    full_name: 'Petugas RT 01 (Ahmad Fauzi)',
     role: 'operator',
-    email: 'operator@sandmosquito.desa.id',
+    assigned_rt: 'RT 01',
+    email: 'operator1@sandmosquito.desa.id',
     phone: '081298765432',
+    is_active: true,
+    created_at: '2026-01-01 08:00:00'
+  },
+  {
+    id: 'USR-0003',
+    username: 'operator2',
+    full_name: 'Petugas RT 02 (Bambang S.)',
+    role: 'operator',
+    assigned_rt: 'RT 02',
+    email: 'operator2@sandmosquito.desa.id',
+    phone: '081298765433',
     is_active: true,
     created_at: '2026-01-01 08:00:00'
   },
@@ -406,9 +428,14 @@ export const initialBills: Bill[] = [
     base_amount: 5000,
     usage_amount: 38000, // (10*2000) + (6*3000) = 20000 + 18000 = 38000
     late_fee: 0,
-    total_amount: 43000,
+    original_amount: 43000,
+    subsidy_amount: 23000,
+    is_subsidized: true,
+    subsidy_type: 'max_tagihan',
+    subsidy_notes: 'Subsidi BUMDes: Plafon Maks. Rp 20.000 / bln',
+    total_amount: 20000,
     paid_amount: 0,
-    balance_due: 43000,
+    balance_due: 20000,
     due_date: '2026-08-20',
     status: 'Belum Dibayar',
     created_at: '2026-08-08 08:05:00'
@@ -478,8 +505,13 @@ export const initialBills: Bill[] = [
     base_amount: 0,
     usage_amount: 75000, // Sosial: (10*1000) + (10*1500) + (25*2000) = 10000 + 15000 + 50000 = 75000
     late_fee: 0,
-    total_amount: 75000,
-    paid_amount: 75000,
+    original_amount: 75000,
+    subsidy_amount: 75000,
+    is_subsidized: true,
+    subsidy_type: 'gratis',
+    subsidy_notes: 'Subsidi 100% Gratis (Fasilitas Ibadah Warga)',
+    total_amount: 0,
+    paid_amount: 0,
     balance_due: 0,
     due_date: '2026-08-20',
     status: 'Lunas',

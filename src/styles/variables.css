@@ -54,13 +54,13 @@
   --info-500: #3b82f6;
   --info-600: #2563eb;
 
-  /* Layout & Spacing - Optimized for 100% Desktop View */
-  --sidebar-width: 230px;
-  --sidebar-collapsed-width: 68px;
-  --header-height: 54px;
-  --radius-sm: 5px;
-  --radius-md: 8px;
-  --radius-lg: 10px;
+  /* Layout & Spacing - Comfortable 100% Baseline */
+  --sidebar-width: 250px;
+  --sidebar-collapsed-width: 72px;
+  --header-height: 60px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
   --radius-full: 9999px;
 
   /* Shadows */
@@ -73,9 +73,11 @@
   /* Transitions */
   --transition-fast: 0.15s ease;
   --transition-normal: 0.25s ease;
+  --card-bg: #ffffff;
 }
 
 [data-theme="dark"] {
+  --card-bg: #1e293b;
   /* Slate Neutral Inversion for Dark Theme */
   --slate-50: #0b1120;
   --slate-100: #0f172a;

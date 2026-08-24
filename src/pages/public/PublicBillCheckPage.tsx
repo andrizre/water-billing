@@ -9,6 +9,7 @@ import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { Card } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
+import { DarkModeToggle } from '../../components/common/DarkModeToggle';
 import { BillInvoiceModal } from '../../components/print/BillInvoicePrint';
 import { Bill } from '../../types';
 import { formatRupiah, formatM3, formatDate, formatPeriod } from '../../utils/formatters';
@@ -63,7 +64,7 @@ export const PublicBillCheckPage: React.FC = () => {
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--slate-100)', padding: '24px 16px' }}>
       <div style={{ maxWidth: 800, margin: '0 auto' }}>
         {/* Top Bar Navigation */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, gap: 12, flexWrap: 'wrap' }}>
           <Link
             to={backDest.path}
             className="btn-secondary"
@@ -81,8 +82,11 @@ export const PublicBillCheckPage: React.FC = () => {
             <ArrowLeft size={16} />
             <span>{backDest.label}</span>
           </Link>
-          <div style={{ fontSize: 13, color: 'var(--slate-500)', fontWeight: 600 }}>
-            {settings.village_name || 'Desa Sandmosquito'}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 13, color: 'var(--slate-500)', fontWeight: 600 }} className="desktop-text-only">
+              {settings.village_name || 'Desa Sandmosquito'}
+            </span>
+            <DarkModeToggle showLabel />
           </div>
         </div>
 
@@ -182,6 +186,45 @@ export const PublicBillCheckPage: React.FC = () => {
                   <p style={{ fontSize: 12, color: 'var(--slate-500)', marginTop: 2 }}>
                     Kategori Tarif: <strong>{searchResult.customer.tariff_name}</strong>
                   </p>
+                  {searchResult.customer.is_subsidized && (
+                    <div style={{ marginTop: 6 }}>
+                      {searchResult.customer.subsidy_type === 'gratis' ? (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                            color: 'var(--success-700)',
+                            padding: '3px 8px',
+                            borderRadius: 4,
+                            border: '1px solid rgba(16, 185, 129, 0.3)'
+                          }}
+                        >
+                          ★ Penerima Subsidi Air Desa (100% Gratis)
+                        </span>
+                      ) : (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            backgroundColor: 'rgba(2, 132, 199, 0.12)',
+                            color: 'var(--primary-700)',
+                            padding: '3px 8px',
+                            borderRadius: 4,
+                            border: '1px solid rgba(2, 132, 199, 0.25)'
+                          }}
+                        >
+                          ★ Penerima Subsidi Air Desa (Plafon Maks. {formatRupiah(searchResult.customer.subsidy_max_amount || 20000)})
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div
@@ -251,9 +294,19 @@ export const PublicBillCheckPage: React.FC = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ fontSize: 11, color: 'var(--slate-500)' }}>Total Tagihan</div>
-                        <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--slate-900)' }}>
-                          {formatRupiah(bill.total_amount)}
+                        {bill.is_subsidized && bill.original_amount && bill.original_amount > bill.total_amount && (
+                          <div style={{ fontSize: 11, color: 'var(--slate-400)', textDecoration: 'line-through' }}>
+                            {formatRupiah(bill.original_amount)}
+                          </div>
+                        )}
+                        <div style={{ fontSize: 16, fontWeight: 800, color: bill.total_amount === 0 ? 'var(--success-700)' : 'var(--slate-900)' }}>
+                          {bill.total_amount === 0 ? 'Rp 0 (Gratis)' : formatRupiah(bill.total_amount)}
                         </div>
+                        {bill.is_subsidized && (
+                          <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--success-700)' }}>
+                            {bill.subsidy_type === 'gratis' ? '★ Subsidi 100%' : `★ Subsidi: -${formatRupiah(bill.subsidy_amount || 0)}`}
+                          </div>
+                        )}
                         {bill.balance_due > 0 && bill.status !== 'Lunas' && (
                           <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--danger-600)' }}>
                             Sisa: {formatRupiah(bill.balance_due)}

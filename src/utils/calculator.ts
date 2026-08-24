@@ -1,13 +1,21 @@
-import { Tariff, BillBreakdown } from '../types';
+import { Tariff, BillBreakdown, SubsidyType } from '../types';
+
+export interface SubsidyOptions {
+  isSubsidized?: boolean;
+  subsidyType?: SubsidyType;
+  subsidyMaxAmount?: number;
+  subsidyNotes?: string;
+}
 
 /**
- * Calculate tiered water consumption breakdown based on village tariff rules
+ * Calculate tiered water consumption breakdown based on village tariff rules & subsidy eligibility
  */
 export function calculateTieredBillBreakdown(
   usageM3: number,
   tariff: Tariff | Partial<Tariff> | null | undefined,
   includeLateFee: boolean = false,
-  adminFee: number = 0
+  adminFee: number = 0,
+  subsidy?: SubsidyOptions | null
 ): BillBreakdown {
   const usage = Math.max(0, Number(usageM3 || 0));
   const baseFee = Number(tariff?.base_fee ?? 5000);
@@ -44,7 +52,29 @@ export function calculateTieredBillBreakdown(
   const tier2Amount = tier2Usage * tier2Rate;
   const tier3Amount = tier3Usage * tier3Rate;
   const usageAmount = tier1Amount + tier2Amount + tier3Amount;
-  const totalAmount = baseFee + usageAmount + lateFeeVal + adminFeeVal;
+  const rawTotal = baseFee + usageAmount + lateFeeVal + adminFeeVal;
+
+  let totalAmount = rawTotal;
+  let subsidyAmount = 0;
+  const isSubsidized = Boolean(subsidy?.isSubsidized);
+  const subsidyType = subsidy?.subsidyType || (isSubsidized ? 'gratis' : 'none');
+  const subsidyNotes = subsidy?.subsidyNotes || '';
+
+  if (isSubsidized) {
+    if (subsidyType === 'gratis') {
+      subsidyAmount = rawTotal;
+      totalAmount = 0;
+    } else if (subsidyType === 'max_tagihan') {
+      const maxCap = Math.max(0, Number(subsidy?.subsidyMaxAmount ?? 20000));
+      if (rawTotal > maxCap) {
+        subsidyAmount = rawTotal - maxCap;
+        totalAmount = maxCap;
+      } else {
+        subsidyAmount = 0;
+        totalAmount = rawTotal;
+      }
+    }
+  }
 
   return {
     usage_m3: usage,
@@ -61,6 +91,12 @@ export function calculateTieredBillBreakdown(
     usage_amount: usageAmount,
     late_fee: lateFeeVal,
     admin_fee: adminFeeVal,
+    raw_total: rawTotal,
+    original_amount: rawTotal,
+    subsidy_amount: subsidyAmount,
+    is_subsidized: isSubsidized,
+    subsidy_type: isSubsidized ? subsidyType : 'none',
+    subsidy_notes: subsidyNotes,
     total_amount: totalAmount
   };
 }

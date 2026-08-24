@@ -137,7 +137,182 @@ export const SettingsPage: React.FC = () => {
         subtitle="Kelola identitas BUMDes, rekening bank, aturan denda, dan pilih salah satu dari 4 database backend aktif."
       />
 
-      {/* 4 Database Backends Selection Panel */}
+      <div className="responsive-grid-2" style={{ alignItems: 'start' }}>
+        {/* Village & Agency Profile Card */}
+        <Card title="Identitas BUMDes / Pengelola Air">
+          <form onSubmit={handleSave}>
+            <div className="form-grid-2">
+              <Input
+                label="Nama Aplikasi"
+                value={formData.app_name}
+                onChange={(e) => handleChange('app_name', e.target.value)}
+                required
+              />
+              <Input
+                label="Nama Lembaga / BUMDes"
+                value={formData.organization_name}
+                onChange={(e) => handleChange('organization_name', e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-grid-2">
+              <Input
+                label="Nama Desa"
+                value={formData.village_name}
+                onChange={(e) => handleChange('village_name', e.target.value)}
+                required
+              />
+              <Input
+                label="Nomor WhatsApp Pengelola"
+                value={formData.contact_phone}
+                onChange={(e) => handleChange('contact_phone', e.target.value)}
+                placeholder="081234567890"
+              />
+            </div>
+
+            <Input
+              label="Alamat Kantor Pengelola"
+              value={formData.village_address}
+              onChange={(e) => handleChange('village_address', e.target.value)}
+              placeholder="Jalan, Nomor, Dusun, RT/RW"
+              required
+            />
+
+            <Input
+              label="Email Resmi (Opsional)"
+              value={formData.contact_email}
+              onChange={(e) => handleChange('contact_email', e.target.value)}
+              placeholder="bumdes@desa.id"
+            />
+
+            <Button type="submit" variant="primary" icon={<Save size={16} />} loading={saving} style={{ marginTop: 16 }}>
+              Simpan Identitas
+            </Button>
+          </form>
+        </Card>
+
+        {/* Billing & Payment Configuration Card */}
+        <Card title="Aturan Pembayaran & Rekening Bank">
+          <form onSubmit={handleSave}>
+            {/* Section 1: Parameter Tagihan */}
+            <div className="form-section-title" style={{ marginTop: 0 }}>
+              1. Parameter Tagihan & Batas Waktu
+            </div>
+
+            <div className="form-grid-2">
+              <Input
+                label="Tanggal Batas Jatuh Tempo"
+                type="number"
+                min="1"
+                max="28"
+                value={formData.due_day_of_month}
+                onChange={(e) => handleChange('due_day_of_month', e.target.value)}
+                hint="Misal tanggal 20 setiap bulan"
+                required
+              />
+              <Input
+                label="Denda Keterlambatan (Rp)"
+                type="number"
+                value={formData.late_fee_flat}
+                onChange={(e) => handleChange('late_fee_flat', e.target.value)}
+                hint="Denda tetap jika lewat jatuh tempo"
+                required
+              />
+            </div>
+
+            <Input
+              label="Biaya Administrasi Tagihan (Rp)"
+              type="number"
+              value={formData.admin_fee_flat || '2500'}
+              onChange={(e) => handleChange('admin_fee_flat', e.target.value)}
+              hint="Biaya operasional / cetak per lembar tagihan"
+              required
+            />
+
+            {/* Section 2: Rekening Bank & QRIS */}
+            <div className="form-section-title">
+              2. Rekening Bank & Pembayaran QRIS
+            </div>
+
+            <Input
+              label="Informasi Rekening Bank Pembayaran"
+              value={formData.bank_account_info}
+              onChange={(e) => handleChange('bank_account_info', e.target.value)}
+              hint="Dicantumkan di faktur & pesan tagihan WhatsApp"
+              placeholder="Contoh: Bank BRI 1234-5678-9012-345 a/n BUMDes Tirta Sandmosquito"
+              required
+            />
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: 14, alignItems: 'start', marginTop: 10 }}>
+              <div>
+                <Input
+                  label="Nama Merchant QRIS Resmi"
+                  value={formData.qris_info}
+                  onChange={(e) => handleChange('qris_info', e.target.value)}
+                  placeholder="Contoh: BUMDes Tirta Sandmosquito"
+                  hint="Nama penerima pada sistem QRIS"
+                />
+
+                <Input
+                  label="URL Gambar Barcode QRIS"
+                  placeholder="https://... (URL gambar barcode)"
+                  value={formData.qris_image_url || ''}
+                  onChange={(e) => handleChange('qris_image_url', e.target.value)}
+                  hint="Gambar barcode otomatis tampil di loket kasir & faktur"
+                />
+              </div>
+
+              {/* QRIS Image Preview Card */}
+              <div className="qris-preview-box" style={{ marginTop: 6 }}>
+                <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--slate-700)', marginBottom: 6 }}>
+                  Pratinjau Barcode QRIS:
+                </span>
+                <img
+                  src={formData.qris_image_url || 'https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=BUMDes%20Tirta%20Sandmosquito%20Water%20Billing'}
+                  alt="Barcode QRIS"
+                  style={{
+                    width: 120,
+                    height: 120,
+                    objectFit: 'contain',
+                    backgroundColor: '#ffffff',
+                    borderRadius: 6,
+                    border: '1px solid var(--slate-200)',
+                    padding: 4,
+                    boxShadow: 'var(--shadow-sm)'
+                  }}
+                />
+                <span style={{ fontSize: 10.5, color: 'var(--slate-500)', marginTop: 6 }}>
+                  {formData.qris_info || 'QRIS BUMDes'}
+                </span>
+              </div>
+            </div>
+
+            {/* Section 3: Catatan Kaki Faktur */}
+            <div className="form-section-title">
+              3. Catatan Kaki Faktur & Struk
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Teks Keterangan di Bagian Bawah Faktur</label>
+              <textarea
+                className="form-control"
+                rows={3}
+                value={formData.bill_footer_notes}
+                onChange={(e) => handleChange('bill_footer_notes', e.target.value)}
+                placeholder="Pesan imbauan hemat air, jam operasional loket, atau informasi kontak"
+                style={{ resize: 'vertical' }}
+              />
+            </div>
+
+            <Button type="submit" variant="primary" icon={<Save size={16} />} loading={saving} style={{ marginTop: 16 }}>
+              Simpan Aturan Pembayaran
+            </Button>
+          </form>
+        </Card>
+      </div>
+
+      {/* 4 Database Backends Selection Panel (Placed at bottom, right above Reset) */}
       <Card
         title={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -146,7 +321,7 @@ export const SettingsPage: React.FC = () => {
           </div>
         }
         subtitle="Sistem mendukung 4 backend penyimpanan. Database yang aktif saat ini ditentukan langsung di file konfigurasi .env (VITE_ACTIVE_BACKEND)."
-        style={{ marginBottom: 24 }}
+        style={{ marginTop: 24 }}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {databaseOptions.map((opt) => {
@@ -162,7 +337,7 @@ export const SettingsPage: React.FC = () => {
                   padding: 16,
                   borderRadius: 'var(--radius-lg)',
                   border: isActive ? '2px solid var(--primary-600)' : '1px solid var(--slate-200)',
-                  backgroundColor: isActive ? 'var(--primary-50)' : '#ffffff',
+                  backgroundColor: isActive ? 'var(--primary-50)' : 'var(--card-bg)',
                   boxShadow: isActive ? '0 4px 12px rgba(2, 132, 199, 0.15)' : 'var(--shadow-card)',
                   transition: 'all 0.2s ease',
                 }}
@@ -173,7 +348,7 @@ export const SettingsPage: React.FC = () => {
                       width: 42,
                       height: 42,
                       borderRadius: 'var(--radius-md)',
-                      backgroundColor: isActive ? '#ffffff' : 'var(--slate-100)',
+                      backgroundColor: isActive ? 'var(--card-bg)' : 'var(--slate-100)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -229,141 +404,6 @@ export const SettingsPage: React.FC = () => {
           </Button>
         </div>
       </Card>
-
-      <div className="responsive-grid-2">
-        {/* Village & Agency Profile Card */}
-        <Card title="Identitas BUMDes / Pengelola Air">
-          <form onSubmit={handleSave}>
-            <Input
-              label="Nama Aplikasi"
-              value={formData.app_name}
-              onChange={(e) => handleChange('app_name', e.target.value)}
-              required
-            />
-            <Input
-              label="Nama Desa"
-              value={formData.village_name}
-              onChange={(e) => handleChange('village_name', e.target.value)}
-              required
-            />
-            <Input
-              label="Nama Lembaga / BUMDes"
-              value={formData.organization_name}
-              onChange={(e) => handleChange('organization_name', e.target.value)}
-              required
-            />
-            <Input
-              label="Alamat Kantor Pengelola"
-              value={formData.village_address}
-              onChange={(e) => handleChange('village_address', e.target.value)}
-              required
-            />
-            <div className="form-grid-2">
-              <Input
-                label="Nomor WhatsApp Pengelola"
-                value={formData.contact_phone}
-                onChange={(e) => handleChange('contact_phone', e.target.value)}
-              />
-              <Input
-                label="Email Resmi"
-                value={formData.contact_email}
-                onChange={(e) => handleChange('contact_email', e.target.value)}
-              />
-            </div>
-
-            <Button type="submit" variant="primary" icon={<Save size={16} />} loading={saving} style={{ marginTop: 16 }}>
-              Simpan Identitas
-            </Button>
-          </form>
-        </Card>
-
-        {/* Billing & Payment Configuration Card */}
-        <Card title="Aturan Pembayaran & Rekening Bank">
-          <form onSubmit={handleSave}>
-            <div className="form-grid-3">
-              <Input
-                label="Tanggal Batas Jatuh Tempo"
-                type="number"
-                min="1"
-                max="28"
-                value={formData.due_day_of_month}
-                onChange={(e) => handleChange('due_day_of_month', e.target.value)}
-                hint="Misal tanggal 20"
-                required
-              />
-              <Input
-                label="Denda Keterlambatan (Rp)"
-                type="number"
-                value={formData.late_fee_flat}
-                onChange={(e) => handleChange('late_fee_flat', e.target.value)}
-                hint="Denda tetap per bulan"
-                required
-              />
-              <Input
-                label="Biaya Administrasi (Rp)"
-                type="number"
-                value={formData.admin_fee_flat || '2500'}
-                onChange={(e) => handleChange('admin_fee_flat', e.target.value)}
-                hint="Biaya admin per lembar tagihan"
-                required
-              />
-            </div>
-
-            <Input
-              label="Informasi Rekening Bank Pembayaran"
-              value={formData.bank_account_info}
-              onChange={(e) => handleChange('bank_account_info', e.target.value)}
-              hint="Ditampilkan di invoice tagihan warga"
-              required
-            />
-
-            <Input
-              label="Informasi Pembayaran QRIS"
-              value={formData.qris_info}
-              onChange={(e) => handleChange('qris_info', e.target.value)}
-              hint="Keterangan teks QRIS (nama merchant / BUMDes)"
-            />
-
-            <Input
-              label="URL / Gambar Barcode QRIS Resmi"
-              placeholder="https://... atau paste URL gambar QRIS BUMDes"
-              value={formData.qris_image_url || ''}
-              onChange={(e) => handleChange('qris_image_url', e.target.value)}
-              hint="Link gambar barcode QRIS yang akan ditampilkan di kasir & tagihan warga"
-            />
-
-            {/* QRIS Image Preview */}
-            <div className="qris-card-wrapper" style={{ marginTop: 8, marginBottom: 16 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--slate-600)', display: 'block', marginBottom: 8 }}>
-                Pratinjau Kode QRIS Resmi:
-              </span>
-              <img
-                src={formData.qris_image_url || 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=BUMDes%20Tirta%20Sandmosquito%20Water%20Billing'}
-                alt="Barcode QRIS"
-                className="qris-image-responsive"
-              />
-              <span style={{ fontSize: 11, color: 'var(--slate-400)', marginTop: 4, display: 'block' }}>
-                *QRIS ini otomatis tampil di layar kasir operator dan invoice tagihan warga.
-              </span>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Catatan Kaki Faktur / Struk Pembayaran</label>
-              <textarea
-                className="form-control"
-                rows={3}
-                value={formData.bill_footer_notes}
-                onChange={(e) => handleChange('bill_footer_notes', e.target.value)}
-                style={{ resize: 'vertical' }}
-              />
-            </div>
-
-            <Button type="submit" variant="primary" icon={<Save size={16} />} loading={saving} style={{ marginTop: 16 }}>
-              Simpan Aturan Pembayaran
-            </Button>
-          </form>
-        </Card>
-      </div>
 
       {/* Demo Reset Card */}
       <Card title="Pemeliharaan & Reset Simulasi Browser" style={{ marginTop: 24 }}>

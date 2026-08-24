@@ -107,7 +107,7 @@ export const ComplaintsManagementPage: React.FC = () => {
 
       {/* Filter Bar */}
       <Card style={{ marginBottom: 20 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 14 }}>
           <div className="search-input-wrapper">
             <Search size={16} className="search-icon" />
             <input
@@ -149,80 +149,82 @@ export const ComplaintsManagementPage: React.FC = () => {
         </div>
       </Card>
 
-      <DataTable
-        columns={[
-          {
-            header: 'No. Laporan',
-            render: (c: Complaint) => <span style={{ fontWeight: 700, color: 'var(--primary-700)' }}>{c.complaint_no}</span>
-          },
-          {
-            header: 'Tanggal',
-            render: (c: Complaint) => formatDateTime(c.created_at || '')
-          },
-          {
-            header: 'Nama Pelanggan',
-            render: (c: Complaint) => (
-              <div>
-                <div style={{ fontWeight: 600 }}>{c.customer_name}</div>
-                <div style={{ fontSize: 11, color: 'var(--slate-500)' }}>
-                  {c.customer_no} {c.phone ? `• ${c.phone}` : ''}
+      <Card title="Daftar Pengaduan & Keluhan Warga">
+        <DataTable
+          columns={[
+            {
+              header: 'No. Laporan',
+              render: (c: Complaint) => <span style={{ fontWeight: 700, color: 'var(--primary-700)' }}>{c.complaint_no}</span>
+            },
+            {
+              header: 'Tanggal',
+              render: (c: Complaint) => formatDateTime(c.created_at || '')
+            },
+            {
+              header: 'Nama Pelanggan',
+              render: (c: Complaint) => (
+                <div>
+                  <div style={{ fontWeight: 600 }}>{c.customer_name}</div>
+                  <div style={{ fontSize: 11, color: 'var(--slate-500)' }}>
+                    {c.customer_no} {c.phone ? `• ${c.phone}` : ''}
+                  </div>
                 </div>
-              </div>
-            )
-          },
-          {
-            header: 'Kategori',
-            render: (c: Complaint) => (
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--slate-700)' }}>
-                {getCategoryLabel(c.category)}
-              </span>
-            )
-          },
-          {
-            header: 'Judul Keluhan',
-            render: (c: Complaint) => (
-              <div>
-                <div style={{ fontWeight: 600, color: 'var(--slate-900)' }}>{c.title}</div>
-                <div style={{ fontSize: 12, color: 'var(--slate-500)', maxWidth: 280, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {c.description}
-                </div>
-              </div>
-            )
-          },
-          {
-            header: 'Status',
-            render: (c: Complaint) => getStatusBadge(c.status)
-          },
-          {
-            header: 'Ditangani Oleh',
-            render: (c: Complaint) => (
-              c.handled_by ? (
-                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--slate-700)' }}>{c.handled_by}</span>
-              ) : (
-                <span style={{ fontSize: 12, color: 'var(--slate-400)' }}>-</span>
               )
-            )
-          },
-          {
-            header: 'Aksi',
-            align: 'right' as const,
-            render: (c: Complaint) => (
-              <Button
-                size="sm"
-                variant="primary"
-                icon={<MessageSquare size={13} />}
-                onClick={() => handleOpenResponseModal(c)}
-              >
-                Tindak Lanjut
-              </Button>
-            )
-          }
-        ]}
-        data={complaints}
-        loading={loading}
-        emptyTitle="Tidak Ada Pengaduan"
-        emptyMessage="Belum ada keluhan yang masuk dari pelanggan."
-      />
+            },
+            {
+              header: 'Kategori',
+              render: (c: Complaint) => (
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--slate-700)' }}>
+                  {getCategoryLabel(c.category)}
+                </span>
+              )
+            },
+            {
+              header: 'Judul Keluhan',
+              render: (c: Complaint) => (
+                <div>
+                  <div style={{ fontWeight: 600, color: 'var(--slate-900)' }}>{c.title}</div>
+                  <div style={{ fontSize: 12, color: 'var(--slate-500)', maxWidth: 280, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {c.description}
+                  </div>
+                </div>
+              )
+            },
+            {
+              header: 'Status',
+              render: (c: Complaint) => getStatusBadge(c.status)
+            },
+            {
+              header: 'Ditangani Oleh',
+              render: (c: Complaint) => (
+                c.handled_by ? (
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--slate-700)' }}>{c.handled_by}</span>
+                ) : (
+                  <span style={{ fontSize: 12, color: 'var(--slate-400)' }}>-</span>
+                )
+              )
+            },
+            {
+              header: 'Aksi',
+              align: 'right' as const,
+              render: (c: Complaint) => (
+                <Button
+                  size="sm"
+                  variant="primary"
+                  icon={<MessageSquare size={13} />}
+                  onClick={() => handleOpenResponseModal(c)}
+                >
+                  Tindak Lanjut
+                </Button>
+              )
+            }
+          ]}
+          data={complaints}
+          loading={loading}
+          emptyTitle="Tidak Ada Pengaduan"
+          emptyMessage="Belum ada keluhan yang masuk dari pelanggan."
+        />
+      </Card>
 
       {/* Response / Follow-up Modal */}
       {activeComplaint && (

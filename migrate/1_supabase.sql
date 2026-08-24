@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS public.users (
   salt text NOT NULL DEFAULT 'demo',
   full_name text NOT NULL,
   role text NOT NULL CHECK (role IN ('admin', 'operator', 'customer')),
+  assigned_rt text,
   email text,
   phone text,
   customer_id text,
@@ -55,6 +56,10 @@ CREATE TABLE IF NOT EXISTS public.customers (
   tariff_id text REFERENCES public.tariffs(id),
   tariff_name text,
   status text NOT NULL DEFAULT 'Aktif' CHECK (status IN ('Aktif', 'Nonaktif', 'Ditangguhkan')),
+  is_subsidized boolean NOT NULL DEFAULT false,
+  subsidy_type text DEFAULT 'none' CHECK (subsidy_type IN ('gratis', 'max_tagihan', 'none')),
+  subsidy_max_amount numeric DEFAULT 0,
+  subsidy_notes text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz
 );
@@ -118,6 +123,11 @@ CREATE TABLE IF NOT EXISTS public.bills (
   usage_amount numeric NOT NULL DEFAULT 0,
   late_fee numeric NOT NULL DEFAULT 0,
   admin_fee numeric NOT NULL DEFAULT 0,
+  original_amount numeric NOT NULL DEFAULT 0,
+  subsidy_amount numeric NOT NULL DEFAULT 0,
+  is_subsidized boolean NOT NULL DEFAULT false,
+  subsidy_type text DEFAULT 'none',
+  subsidy_notes text,
   total_amount numeric NOT NULL DEFAULT 0,
   paid_amount numeric NOT NULL DEFAULT 0,
   balance_due numeric NOT NULL DEFAULT 0,
@@ -357,16 +367,20 @@ INSERT INTO public.tariffs (id, code, name, category, base_fee, tier1_max, tier1
   ('TRF-03', 'S1-DESA', 'Sosial & Tempat Ibadah', 'Sosial', 0, 10, 1000, 20, 1500, 2000, 0, 'Tarif subsidi untuk tempat ibadah dan posyandu', true)
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO public.users (id, username, full_name, role, email, phone, is_active, customer_id) VALUES
-  ('USR-0001', 'admin', 'Administrator Utama', 'admin', 'admin@sandmosquito.desa.id', '081234567890', true, NULL),
-  ('USR-0002', 'operator', 'Petugas Lapangan', 'operator', 'operator@sandmosquito.desa.id', '081298765432', true, NULL),
-  ('USR-CUST-01', 'cust-2026-0001', 'Bpk. Budi Santoso', 'customer', '', '081234567801', true, 'CUST-ID-01'),
-  ('USR-CUST-02', 'cust-2026-0002', 'Ibu Siti Aminah', 'customer', '', '081234567802', true, 'CUST-ID-02')
+INSERT INTO public.users (id, username, full_name, role, assigned_rt, email, phone, is_active, customer_id) VALUES
+  ('USR-0001', 'admin', 'Administrator Utama', 'admin', NULL, 'admin@sandmosquito.desa.id', '081234567890', true, NULL),
+  ('USR-0002', 'operator', 'Petugas Lapangan RT 01', 'operator', 'RT 01 / RW 01', 'operator@sandmosquito.desa.id', '081298765432', true, NULL),
+  ('USR-0003', 'operator2', 'Petugas Lapangan RT 02', 'operator', 'RT 02 / RW 01', 'operator2@sandmosquito.desa.id', '081298765433', true, NULL),
+  ('USR-CUST-01', 'cust-2026-0001', 'Bpk. Budi Santoso', 'customer', NULL, '', '081234567801', true, 'CUST-ID-01'),
+  ('USR-CUST-02', 'cust-2026-0002', 'Ibu Siti Aminah', 'customer', NULL, '', '081234567802', true, 'CUST-ID-02')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO public.customers (id, customer_no, full_name, nik, phone, address, rt_rw, meter_id, meter_no, current_reading, tariff_id, tariff_name, status) VALUES
-  ('CUST-ID-01', 'CUST-2026-0001', 'Bpk. Budi Santoso', '3201012345670001', '081234567801', 'RT 01 / RW 01 Dusun Krajan', 'RT 01 / RW 01', 'MTR-ID-01', 'MTR-8801', 142, 'TRF-01', 'Rumah Tangga Standar', 'Aktif'),
-  ('CUST-ID-02', 'CUST-2026-0002', 'Ibu Siti Aminah', '3201012345670002', '081234567802', 'RT 01 / RW 01 Dusun Krajan', 'RT 01 / RW 01', 'MTR-ID-02', 'MTR-8802', 111, 'TRF-01', 'Rumah Tangga Standar', 'Aktif')
+INSERT INTO public.customers (id, customer_no, full_name, nik, phone, address, rt_rw, meter_id, meter_no, current_reading, tariff_id, tariff_name, status, is_subsidized, subsidy_type, subsidy_max_amount, subsidy_notes) VALUES
+  ('CUST-ID-01', 'CUST-2026-0001', 'Bpk. Budi Santoso', '3201012345670001', '081234567801', 'RT 01 / RW 01 Dusun Krajan', 'RT 01 / RW 01', 'MTR-ID-01', 'MTR-8801', 142, 'TRF-01', 'Rumah Tangga Standar', 'Aktif', false, 'none', 0, NULL),
+  ('CUST-ID-02', 'CUST-2026-0002', 'Ibu Siti Aminah', '3201012345670002', '081234567802', 'RT 01 / RW 01 Dusun Krajan', 'RT 01 / RW 01', 'MTR-ID-02', 'MTR-8802', 111, 'TRF-01', 'Rumah Tangga Standar', 'Aktif', true, 'max_tagihan', 20000, 'Subsidi BUMDes: Plafon Maks. Rp 20.000 / bln'),
+  ('CUST-ID-03', 'CUST-2026-0003', 'Bpk. Slamet Riyadi', '3201012345670003', '081234567803', 'RT 02 / RW 01 Dusun Sukamaju', 'RT 02 / RW 01', 'MTR-ID-03', 'MTR-8803', 235, 'TRF-01', 'Rumah Tangga Standar', 'Aktif', false, 'none', 0, NULL),
+  ('CUST-ID-04', 'CUST-2026-0004', 'Warung Makan Bu Joko', '3201012345670004', '081234567804', 'Jl. Pasar Desa RT 03 / RW 01', 'RT 03 / RW 01', 'MTR-ID-04', 'MTR-8804', 348, 'TRF-02', 'Niaga & UMKM Desa', 'Aktif', false, 'none', 0, NULL),
+  ('CUST-ID-05', 'CUST-2026-0005', 'Masjid Jami Al-Ikhlas', '3201012345670005', '081234567805', 'Alun-alun Desa RT 01 / RW 02', 'RT 01 / RW 02', 'MTR-ID-05', 'MTR-8805', 585, 'TRF-03', 'Sosial & Tempat Ibadah', 'Aktif', true, 'gratis', 0, 'Subsidi 100% Gratis (Tempat Ibadah Warga)')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.registration_tokens (id, token, recipient_name, target_role, default_tariff_id, is_used, notes) VALUES

@@ -156,6 +156,7 @@ export const mockApiService = {
         username: user.username,
         fullName: user.full_name,
         role: user.role,
+        assigned_rt: user.assigned_rt,
         email: user.email,
         phone: user.phone,
         customerId: user.customer_id,
@@ -261,6 +262,7 @@ export const mockApiService = {
       username: data.username || '',
       full_name: data.full_name || '',
       role: data.role || 'operator',
+      assigned_rt: data.assigned_rt || '',
       email: data.email || '',
       phone: data.phone || '',
       is_active: data.is_active !== undefined ? data.is_active : true,
@@ -358,6 +360,10 @@ export const mockApiService = {
       tariff_id: tariff?.id || 'TRF-01',
       tariff_name: tariff?.name || 'Rumah Tangga Standar',
       status: 'Aktif',
+      is_subsidized: Boolean(data.is_subsidized),
+      subsidy_type: data.subsidy_type || (data.is_subsidized ? 'gratis' : 'none'),
+      subsidy_max_amount: Number(data.subsidy_max_amount || 0),
+      subsidy_notes: data.subsidy_notes || '',
       created_at: nowTimeString()
     };
 
@@ -528,8 +534,16 @@ export const mockApiService = {
     if (data.auto_generate_bill) {
       const tariff = db.tariffs.find((t) => t.id === customer.tariff_id) || db.tariffs[0];
       const adminFee = Number(db.settings?.admin_fee_flat || 2500);
-      const calc = calculateTieredBillBreakdown(usage, tariff, false, adminFee);
+      const subsidyOpts = {
+        isSubsidized: customer.is_subsidized,
+        subsidyType: customer.subsidy_type,
+        subsidyMaxAmount: customer.subsidy_max_amount,
+        subsidyNotes: customer.subsidy_notes
+      };
+      const calc = calculateTieredBillBreakdown(usage, tariff, false, adminFee, subsidyOpts);
       const billId = `BILL-${year}${String(month).padStart(2, '0')}-${Date.now().toString().slice(-4)}`;
+      const isSubsidized = Boolean(calc.is_subsidized);
+      const isFree = isSubsidized && calc.total_amount === 0;
 
       generatedBill = {
         id: billId,
@@ -549,11 +563,16 @@ export const mockApiService = {
         usage_amount: calc.usage_amount,
         late_fee: 0,
         admin_fee: adminFee,
+        original_amount: calc.raw_total || calc.total_amount,
+        subsidy_amount: calc.subsidy_amount || 0,
+        is_subsidized: isSubsidized,
+        subsidy_type: calc.subsidy_type,
+        subsidy_notes: calc.subsidy_notes,
         total_amount: calc.total_amount,
         paid_amount: 0,
         balance_due: calc.total_amount,
         due_date: `${year}-${String(month).padStart(2, '0')}-20`,
-        status: 'Belum Dibayar',
+        status: isFree ? 'Lunas' : 'Belum Dibayar',
         created_at: nowTimeString()
       };
       db.bills.unshift(generatedBill);
@@ -653,8 +672,16 @@ export const mockApiService = {
 
       const tariff = db.tariffs.find((t) => t.id === cust.tariff_id) || db.tariffs[0];
       const adminFee = Number(db.settings?.admin_fee_flat || 2500);
-      const calc = calculateTieredBillBreakdown(reading.usage_m3, tariff, false, adminFee);
+      const subsidyOpts = {
+        isSubsidized: cust.is_subsidized,
+        subsidyType: cust.subsidy_type,
+        subsidyMaxAmount: cust.subsidy_max_amount,
+        subsidyNotes: cust.subsidy_notes
+      };
+      const calc = calculateTieredBillBreakdown(reading.usage_m3, tariff, false, adminFee, subsidyOpts);
       const billId = `BILL-${periodYear}${String(periodMonth).padStart(2, '0')}-${Date.now().toString().slice(-4)}-${generatedCount}`;
+      const isSubsidized = Boolean(calc.is_subsidized);
+      const isFree = isSubsidized && calc.total_amount === 0;
 
       const newBill: Bill = {
         id: billId,
@@ -674,11 +701,16 @@ export const mockApiService = {
         usage_amount: calc.usage_amount,
         late_fee: 0,
         admin_fee: adminFee,
+        original_amount: calc.raw_total || calc.total_amount,
+        subsidy_amount: calc.subsidy_amount || 0,
+        is_subsidized: isSubsidized,
+        subsidy_type: calc.subsidy_type,
+        subsidy_notes: calc.subsidy_notes,
         total_amount: calc.total_amount,
         paid_amount: 0,
         balance_due: calc.total_amount,
         due_date: `${periodYear}-${String(periodMonth).padStart(2, '0')}-20`,
-        status: 'Belum Dibayar',
+        status: isFree ? 'Lunas' : 'Belum Dibayar',
         created_at: nowTimeString()
       };
 

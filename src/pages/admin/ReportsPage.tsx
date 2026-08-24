@@ -146,7 +146,7 @@ export const ReportsPage: React.FC = () => {
         title="Laporan & Rekapitulasi Keuangan Air"
         subtitle="Laporan terpadu penerimaan pendapatan, penagihan rekening air, audit tunggakan, dan volume kubikasi."
         action={
-          <div style={{ display: 'flex', gap: 8 }} className="no-print">
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }} className="no-print">
             <Button variant="secondary" icon={<Download size={16} />} onClick={handleExportCsv}>
               Export CSV
             </Button>
@@ -158,7 +158,7 @@ export const ReportsPage: React.FC = () => {
       />
 
       {/* Tabs Navigation */}
-      <div className="no-print">
+      <div className="no-print" style={{ width: '100%', overflowX: 'auto' }}>
         <Tabs tabs={tabs} activeTab={activeTab} onChange={(t) => setActiveTab(t)} />
       </div>
 
@@ -186,10 +186,10 @@ export const ReportsPage: React.FC = () => {
       {/* Filters (No-print) */}
       <Card bodyClassName="p-3" style={{ marginBottom: 14 }} className="no-print">
         <div className="filter-bar" style={{ margin: 0 }}>
-          <div className="filter-group">
+          <div className="filter-group" style={{ flexWrap: 'wrap' }}>
             {(activeTab === 'billing' || activeTab === 'usage') && (
               <>
-                <div style={{ width: 140 }}>
+                <div style={{ minWidth: 120, flex: 1 }}>
                   <Select
                     label="Bulan"
                     options={INDONESIAN_MONTHS.map((m, idx) => ({ label: m, value: String(idx + 1) }))}
@@ -197,7 +197,7 @@ export const ReportsPage: React.FC = () => {
                     onChange={(e) => setPeriodMonth(e.target.value)}
                   />
                 </div>
-                <div style={{ width: 110 }}>
+                <div style={{ minWidth: 100, flex: 1 }}>
                   <Select
                     label="Tahun"
                     options={[
@@ -212,7 +212,7 @@ export const ReportsPage: React.FC = () => {
             )}
 
             {activeTab === 'payment' && (
-              <div style={{ width: 180 }}>
+              <div style={{ minWidth: 160, flex: 1 }}>
                 <Select
                   label="Metode Bayar"
                   options={[
@@ -235,26 +235,26 @@ export const ReportsPage: React.FC = () => {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',
             gap: 10,
             marginBottom: 14
           }}
         >
           {activeTab === 'billing' && (
             <>
-              <div style={{ backgroundColor: 'var(--slate-50)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
+              <div style={{ backgroundColor: 'var(--card-bg)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
                 <div style={{ fontSize: 11, color: 'var(--slate-500)', fontWeight: 600 }}>TOTAL LEMBAR TAGIHAN</div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--slate-900)' }}>{reportData.summary.total_bills || reportData.items.length}</div>
               </div>
-              <div style={{ backgroundColor: 'var(--slate-50)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
+              <div style={{ backgroundColor: 'var(--card-bg)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
                 <div style={{ fontSize: 11, color: 'var(--slate-500)', fontWeight: 600 }}>TOTAL NILAI TAGIHAN</div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--primary-700)' }}>{formatRupiah(reportData.summary.total_billed)}</div>
               </div>
-              <div style={{ backgroundColor: 'var(--slate-50)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
+              <div style={{ backgroundColor: 'var(--card-bg)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
                 <div style={{ fontSize: 11, color: 'var(--slate-500)', fontWeight: 600 }}>SUDAH TERBAYAR</div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--success-700)' }}>{formatRupiah(reportData.summary.total_paid)}</div>
               </div>
-              <div style={{ backgroundColor: 'var(--slate-50)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
+              <div style={{ backgroundColor: 'var(--card-bg)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
                 <div style={{ fontSize: 11, color: 'var(--slate-500)', fontWeight: 600 }}>BELUM LUNAS / TUNGGAKAN</div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--danger-700)' }}>{formatRupiah(reportData.summary.total_balance_due)}</div>
               </div>
@@ -263,11 +263,11 @@ export const ReportsPage: React.FC = () => {
 
           {activeTab === 'payment' && (
             <>
-              <div style={{ backgroundColor: 'var(--slate-50)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
+              <div style={{ backgroundColor: 'var(--card-bg)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
                 <div style={{ fontSize: 11, color: 'var(--slate-500)', fontWeight: 600 }}>TOTAL TRANSAKSI</div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--slate-900)' }}>{reportData.summary.total_transactions || reportData.items.length}</div>
               </div>
-              <div style={{ backgroundColor: 'var(--slate-50)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
+              <div style={{ backgroundColor: 'var(--card-bg)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
                 <div style={{ fontSize: 11, color: 'var(--slate-500)', fontWeight: 600 }}>TOTAL PENDAPATAN DITERIMA</div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--success-700)' }}>{formatRupiah(reportData.summary.total_revenue)}</div>
               </div>
@@ -276,11 +276,11 @@ export const ReportsPage: React.FC = () => {
 
           {activeTab === 'arrears' && (
             <>
-              <div style={{ backgroundColor: 'var(--slate-50)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
+              <div style={{ backgroundColor: 'var(--card-bg)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
                 <div style={{ fontSize: 11, color: 'var(--slate-500)', fontWeight: 600 }}>JUMLAH WARGA MENUNGGAK</div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--danger-700)' }}>{reportData.summary.total_defaulters || reportData.items.length} Pelanggan</div>
               </div>
-              <div style={{ backgroundColor: 'var(--slate-50)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
+              <div style={{ backgroundColor: 'var(--card-bg)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
                 <div style={{ fontSize: 11, color: 'var(--slate-500)', fontWeight: 600 }}>TOTAL PIUTANG AIR DESA</div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--danger-700)' }}>{formatRupiah(reportData.summary.total_arrears_amount)}</div>
               </div>
@@ -289,11 +289,11 @@ export const ReportsPage: React.FC = () => {
 
           {activeTab === 'profit_loss' && (
             <>
-              <div style={{ backgroundColor: 'var(--slate-50)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
+              <div style={{ backgroundColor: 'var(--card-bg)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
                 <div style={{ fontSize: 11, color: 'var(--slate-500)', fontWeight: 600 }}>TOTAL PENDAPATAN KAS AIR</div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--success-700)' }}>{formatRupiah(reportData.summary.total_revenue)}</div>
               </div>
-              <div style={{ backgroundColor: 'var(--slate-50)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
+              <div style={{ backgroundColor: 'var(--card-bg)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--slate-200)' }}>
                 <div style={{ fontSize: 11, color: 'var(--slate-500)', fontWeight: 600 }}>TOTAL BIAYA PEMELIHARAAN</div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--danger-700)' }}>{formatRupiah(reportData.summary.total_expense)}</div>
               </div>

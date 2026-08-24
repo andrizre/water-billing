@@ -194,9 +194,19 @@ export const BillManagement: React.FC = () => {
       header: 'Total Tagihan',
       render: (b: Bill) => (
         <div>
-          <div style={{ fontWeight: 800, color: 'var(--slate-900)' }}>
-            {formatRupiah(b.total_amount)}
+          {b.is_subsidized && b.original_amount && b.original_amount > b.total_amount && (
+            <div style={{ fontSize: 11, color: 'var(--slate-400)', textDecoration: 'line-through' }}>
+              {formatRupiah(b.original_amount)}
+            </div>
+          )}
+          <div style={{ fontWeight: 800, color: b.total_amount === 0 ? 'var(--success-700)' : 'var(--slate-900)' }}>
+            {b.total_amount === 0 ? 'Gratis (Rp 0)' : formatRupiah(b.total_amount)}
           </div>
+          {b.is_subsidized && (
+            <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--success-700)' }}>
+              {b.subsidy_type === 'gratis' ? '★ Subsidi 100%' : `★ Subsidi: -${formatRupiah(b.subsidy_amount || 0)}`}
+            </div>
+          )}
           {b.balance_due > 0 && b.status !== 'Lunas' && (
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--danger-600)' }}>
               Sisa: {formatRupiah(b.balance_due)}

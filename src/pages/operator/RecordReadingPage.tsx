@@ -11,7 +11,8 @@ import {
   AlertTriangle,
   Image as ImageIcon,
   Trash2,
-  Eye
+  Eye,
+  HeartHandshake
 } from 'lucide-react';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Card } from '../../components/common/Card';
@@ -21,13 +22,15 @@ import { Select } from '../../components/common/Select';
 import { Modal } from '../../components/common/Modal';
 import { DataTable } from '../../components/common/DataTable';
 import { Pagination } from '../../components/common/Pagination';
+import { useAuth } from '../../context/AuthContext';
 import { usePagination } from '../../hooks/usePagination';
 import { useToast } from '../../context/ToastContext';
 import { api } from '../../services/api';
 import { Customer, MeterReading } from '../../types';
-import { formatM3, formatDate, formatPeriod, INDONESIAN_MONTHS } from '../../utils/formatters';
+import { formatM3, formatDate, formatPeriod, formatRupiah, INDONESIAN_MONTHS } from '../../utils/formatters';
 
 export const RecordReadingPage: React.FC = () => {
+  const { user, role } = useAuth();
   const [readings, setReadings] = useState<MeterReading[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -64,7 +67,10 @@ export const RecordReadingPage: React.FC = () => {
   const fetchCustomers = useCallback(async () => {
     try {
       const custs = await api.getCustomers();
-      const active = custs.filter((c: Customer) => c.status === 'Aktif');
+      let active = custs.filter((c: Customer) => c.status === 'Aktif');
+      if (role === 'operator' && user?.assigned_rt && user.assigned_rt !== 'Semua RT') {
+        active = active.filter((c: Customer) => c.rt_rw && c.rt_rw.includes(user.assigned_rt!));
+      }
       setCustomers(active);
       if (active.length > 0 && !selectedCustomerId) {
         setSelectedCustomerId(active[0].id);
@@ -72,22 +78,25 @@ export const RecordReadingPage: React.FC = () => {
     } catch (e) {
       console.error(e);
     }
-  }, [selectedCustomerId]);
+  }, [selectedCustomerId, role, user?.assigned_rt]);
 
   const fetchReadings = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await api.getReadings({
+      let data = await api.getReadings({
         period_month: periodMonth,
         period_year: periodYear
       });
+      if (role === 'operator' && user?.assigned_rt && user.assigned_rt !== 'Semua RT') {
+        data = data.filter((r: MeterReading) => r.rt_rw && r.rt_rw.includes(user.assigned_rt!));
+      }
       setReadings(data);
     } catch (err: any) {
       toastError(err.message || 'Gagal memuat catatan meter.');
     } finally {
       setLoading(false);
     }
-  }, [periodMonth, periodYear, toastError]);
+  }, [periodMonth, periodYear, toastError, role, user?.assigned_rt]);
 
   useEffect(() => {
     fetchCustomers();
@@ -239,6 +248,16 @@ export const RecordReadingPage: React.FC = () => {
       <PageHeader
         title="Pencatatan Meteran Air Bulanan"
         subtitle="Input angka pembacaan meter fisik air di lapangan dengan kalkulasi volume kubikasi otomatis."
+        action={
+          user?.assigned_rt && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, backgroundColor: 'var(--primary-50)', border: '1px solid var(--primary-200)', padding: '6px 12px', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 700, color: 'var(--primary-700)' }}>
+              <span>Wilayah Tugas:</span>
+              <span style={{ backgroundColor: 'var(--primary-600)', color: '#fff', padding: '2px 8px', borderRadius: 4, fontSize: 12 }}>
+                {user.assigned_rt}
+              </span>
+            </div>
+          )
+        }
       />
 
       <div className="responsive-grid-2" style={{ marginBottom: 24 }}>
@@ -255,13 +274,42 @@ export const RecordReadingPage: React.FC = () => {
             <Select
               label="Pilih Pelanggan Air"
               options={customers.map((c) => ({
-                label: `${c.customer_no} - ${c.full_name} (${c.rt_rw})`,
+                label: `${c.customer_no} - ${c.full_name} (${c.rt_rw})${c.is_subsidized ? ' [SUBSIDI]' : ''}`,
                 value: c.id
               }))}
               value={selectedCustomerId}
               onChange={(e) => setSelectedCustomerId(e.target.value)}
               required
             />
+
+            {(() => {
+              const selCust = customers.find(c => c.id === selectedCustomerId);
+              if (!selCust?.is_subsidized) return null;
+              return (
+                <div
+                  style={{
+                    padding: '8px 12px',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid rgba(16, 185, 129, 0.25)',
+                    color: 'var(--success-800)',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    marginBottom: 10
+                  }}
+                >
+                  <HeartHandshake size={15} />
+                  <span>
+                    {selCust.subsidy_type === 'gratis'
+                      ? 'Warga Penerima Subsidi: 100% Tagihan Gratis (Rp 0)'
+                      : `Warga Penerima Subsidi: Plafon Maksimal Bayar ${formatRupiah(selCust.subsidy_max_amount || 20000)}`}
+                  </span>
+                </div>
+              );
+            })()}
 
             <div className="form-grid-2">
               <Select

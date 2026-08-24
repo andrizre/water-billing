@@ -15,6 +15,7 @@ import { Badge } from '../../components/common/Badge';
 import { DataTable } from '../../components/common/DataTable';
 import { Pagination } from '../../components/common/Pagination';
 import { BillInvoiceModal } from '../../components/print/BillInvoicePrint';
+import { useAuth } from '../../context/AuthContext';
 import { usePagination } from '../../hooks/usePagination';
 import { useToast } from '../../context/ToastContext';
 import { api } from '../../services/api';
@@ -22,6 +23,7 @@ import { Bill } from '../../types';
 import { formatRupiah, formatM3, formatDate, formatPeriod, INDONESIAN_MONTHS } from '../../utils/formatters';
 
 export const BillGeneratePage: React.FC = () => {
+  const { user, role } = useAuth();
   const [bills, setBills] = useState<Bill[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [batchMonth, setBatchMonth] = useState<string>('8');
@@ -36,17 +38,20 @@ export const BillGeneratePage: React.FC = () => {
   const fetchBills = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await api.getBills({
+      let data = await api.getBills({
         period_month: batchMonth,
         period_year: batchYear
       });
+      if (role === 'operator' && user?.assigned_rt && user.assigned_rt !== 'Semua RT') {
+        data = data.filter((b: Bill) => b.rt_rw && b.rt_rw.includes(user.assigned_rt!));
+      }
       setBills(data);
     } catch (err: any) {
       toastError(err.message || 'Gagal memuat tagihan.');
     } finally {
       setLoading(false);
     }
-  }, [batchMonth, batchYear, toastError]);
+  }, [batchMonth, batchYear, toastError, role, user?.assigned_rt]);
 
   useEffect(() => {
     fetchBills();
@@ -94,9 +99,21 @@ export const BillGeneratePage: React.FC = () => {
     {
       header: 'Total Tagihan',
       render: (b: Bill) => (
-        <span style={{ fontWeight: 800, color: 'var(--slate-900)', fontSize: 14 }}>
-          {formatRupiah(b.total_amount)}
-        </span>
+        <div>
+          {b.is_subsidized && b.original_amount && b.original_amount > b.total_amount && (
+            <div style={{ fontSize: 11, color: 'var(--slate-400)', textDecoration: 'line-through' }}>
+              {formatRupiah(b.original_amount)}
+            </div>
+          )}
+          <span style={{ fontWeight: 800, color: b.total_amount === 0 ? 'var(--success-700)' : 'var(--slate-900)', fontSize: 14 }}>
+            {b.total_amount === 0 ? 'Gratis (Rp 0)' : formatRupiah(b.total_amount)}
+          </span>
+          {b.is_subsidized && (
+            <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--success-700)' }}>
+              {b.subsidy_type === 'gratis' ? '★ Subsidi 100%' : `★ Subsidi: -${formatRupiah(b.subsidy_amount || 0)}`}
+            </div>
+          )}
+        </div>
       )
     },
     {
@@ -131,6 +148,16 @@ export const BillGeneratePage: React.FC = () => {
       <PageHeader
         title="Pembuatan & Generate Tagihan Air"
         subtitle="Pembuatan faktur rekening air bulanan berdasarkan angka pencatatan meter yang telah terinput."
+        action={
+          user?.assigned_rt && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, backgroundColor: 'var(--primary-50)', border: '1px solid var(--primary-200)', padding: '6px 12px', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 700, color: 'var(--primary-700)' }}>
+              <span>Wilayah Tugas:</span>
+              <span style={{ backgroundColor: 'var(--primary-600)', color: '#fff', padding: '2px 8px', borderRadius: 4, fontSize: 12 }}>
+                {user.assigned_rt}
+              </span>
+            </div>
+          )
+        }
       />
 
       {/* Generator Control Card */}

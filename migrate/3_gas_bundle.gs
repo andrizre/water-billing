@@ -45,7 +45,7 @@ function setupDatabase() {
   const sheets = [
     'users', 'tariffs', 'customers', 'meters', 'meter_readings',
     'bills', 'payments', 'settings', 'audit_logs', 'announcements',
-    'complaints', 'subscription_requests', 'registration_tokens'
+    'complaints', 'subscription_requests', 'registration_tokens', 'maintenance_expenses'
   ];
 
   sheets.forEach(name => {
@@ -67,6 +67,7 @@ function setupDatabase() {
     settingsSheet.appendRow(['bank_account_info', 'Bank BRI: 1234-01-000123-53-0 a.n BUMDes Tirta Sandmosquito', new Date().toISOString()]);
     settingsSheet.appendRow(['due_day_of_month', '20', new Date().toISOString()]);
     settingsSheet.appendRow(['late_fee_flat', '5000', new Date().toISOString()]);
+    settingsSheet.appendRow(['admin_fee_flat', '2500', new Date().toISOString()]);
   }
 }
 
@@ -81,7 +82,7 @@ function handleAction(action, data) {
       if (!user) throw new Error('Pengguna tidak ditemukan.');
       return {
         token: 'gas_token_' + user.id + '_' + Date.now(),
-        user: { id: user.id, username: user.username, fullName: user.full_name, role: user.role, phone: user.phone }
+        user: { id: user.id, username: user.username, fullName: user.full_name, role: user.role, assigned_rt: user.assigned_rt, phone: user.phone }
       };
     }
 
@@ -120,6 +121,10 @@ function handleAction(action, data) {
     case 'tokens_list':
     case 'getRegistrationTokens':
       return getSheetData(ss, 'registration_tokens');
+
+    case 'maintenance_expenses_list':
+    case 'getMaintenanceExpenses':
+      return getSheetData(ss, 'maintenance_expenses');
 
     case 'settings_get':
     case 'getSettings': {

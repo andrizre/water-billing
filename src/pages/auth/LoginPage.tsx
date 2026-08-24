@@ -6,6 +6,7 @@ import { useToast } from '../../context/ToastContext';
 import { useSettings } from '../../context/SettingsContext';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
+import { DarkModeToggle } from '../../components/common/DarkModeToggle';
 import { usePageTitle } from '../../hooks/usePageTitle';
 
 export const LoginPage: React.FC = () => {
@@ -67,52 +68,29 @@ export const LoginPage: React.FC = () => {
       style={{
         minHeight: '100vh',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: 'var(--slate-100)',
-        padding: 20
+        padding: 20,
+        position: 'relative'
       }}
     >
-      <div
-        style={{
-          width: '100%',
-          maxWidth: 440,
-          backgroundColor: '#ffffff',
-          borderRadius: 'var(--radius-lg)',
-          boxShadow: 'var(--shadow-xl)',
-          border: '1px solid var(--slate-200)',
-          overflow: 'hidden'
-        }}
-      >
+      {/* Floating Dark Mode Toggle */}
+      <div style={{ position: 'absolute', top: 16, right: 20, zIndex: 20 }}>
+        <DarkModeToggle showLabel />
+      </div>
+
+      <div className="auth-card">
         {/* Card Header */}
-        <div
-          style={{
-            background: 'linear-gradient(135deg, var(--primary-700), var(--primary-500))',
-            color: '#ffffff',
-            padding: '32px 28px 24px 28px',
-            textAlign: 'center'
-          }}
-        >
-          <div
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: 16,
-              backgroundColor: 'rgba(255, 255, 255, 0.2)',
-              backdropFilter: 'blur(8px)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 14px auto',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
-            }}
-          >
-            <Droplets size={32} color="#ffffff" />
+        <div className="auth-card-header">
+          <div className="auth-logo-box">
+            <Droplets size={32} />
           </div>
-          <h1 style={{ fontSize: 20, fontWeight: 800, letterSpacing: -0.5 }}>
+          <h1 className="auth-card-title">
             {settings.app_name || 'Sandmosquito Water Billing'}
           </h1>
-          <p style={{ fontSize: 13, opacity: 0.9, marginTop: 4 }}>
+          <p className="auth-card-subtitle">
             Sistem Informasi Pengelolaan Tagihan Air {settings.village_name || 'Desa Sandmosquito'}
           </p>
         </div>
@@ -178,16 +156,8 @@ export const LoginPage: React.FC = () => {
           </form>
 
           {/* Quick Demo Credentials */}
-          <div
-            style={{
-              marginTop: 24,
-              padding: 14,
-              backgroundColor: 'var(--slate-50)',
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--slate-200)'
-            }}
-          >
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--slate-600)', marginBottom: 8 }}>
+          <div className="auth-demo-box">
+            <div className="auth-demo-title">
               AKUN CONTOH (DEMO LOGIN):
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -203,14 +173,21 @@ export const LoginPage: React.FC = () => {
                 className="btn btn-secondary btn-sm"
                 onClick={() => handleQuickFill('operator', 'operator123')}
               >
-                <User size={12} style={{ marginRight: 4 }} /> Operator
+                <User size={12} style={{ marginRight: 4 }} /> Operator RT 01
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => handleQuickFill('operator2', 'operator123')}
+              >
+                <User size={12} style={{ marginRight: 4 }} /> Operator RT 02
               </button>
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
                 onClick={() => handleQuickFill('CUST-2026-0001', 'warga123')}
               >
-                <Droplets size={12} style={{ marginRight: 4 }} /> Customer (Warga)
+                <Droplets size={12} style={{ marginRight: 4 }} /> Warga (Bpk. Budi)
               </button>
             </div>
           </div>

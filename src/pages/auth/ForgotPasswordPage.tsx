@@ -4,6 +4,7 @@ import { KeyRound, ShieldCheck, CheckCircle2, ArrowRight, Eye, EyeOff, User, Hel
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
+import { DarkModeToggle } from '../../components/common/DarkModeToggle';
 import { useToast } from '../../context/ToastContext';
 import { useSettings } from '../../context/SettingsContext';
 import { api } from '../../services/api';
@@ -164,12 +165,19 @@ export const ForgotPasswordPage: React.FC = () => {
       style={{
         minHeight: '100vh',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: 'var(--slate-100)',
         padding: '24px 16px',
+        position: 'relative'
       }}
     >
+      {/* Floating Dark Mode Toggle */}
+      <div style={{ position: 'absolute', top: 16, right: 20, zIndex: 20 }}>
+        <DarkModeToggle showLabel />
+      </div>
+
       <div style={{ width: '100%', maxWidth: 480 }}>
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 24 }}>

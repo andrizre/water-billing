@@ -14,10 +14,22 @@
     {
       "id": "USR-0002",
       "username": "operator",
-      "full_name": "Petugas Lapangan",
+      "full_name": "Petugas Lapangan RT 01",
       "role": "operator",
+      "assigned_rt": "RT 01 / RW 01",
       "email": "operator@sandmosquito.desa.id",
       "phone": "081298765432",
+      "is_active": true,
+      "created_at": "2026-01-01 08:00:00"
+    },
+    {
+      "id": "USR-0003",
+      "username": "operator2",
+      "full_name": "Petugas Lapangan RT 02",
+      "role": "operator",
+      "assigned_rt": "RT 02 / RW 01",
+      "email": "operator2@sandmosquito.desa.id",
+      "phone": "081298765433",
       "is_active": true,
       "created_at": "2026-01-01 08:00:00"
     },
@@ -30,6 +42,59 @@
       "phone": "081234567801",
       "is_active": true,
       "created_at": "2026-01-10 09:00:00"
+    }
+  ],
+  "customers": [
+    {
+      "id": "CUST-ID-01",
+      "customer_no": "CUST-2026-0001",
+      "full_name": "Bpk. Budi Santoso",
+      "nik": "3201012345670001",
+      "phone": "081234567801",
+      "address": "RT 01 / RW 01 Dusun Krajan",
+      "rt_rw": "RT 01 / RW 01",
+      "meter_no": "MTR-8801",
+      "tariff_id": "TRF-01",
+      "tariff_name": "Rumah Tangga Standar",
+      "status": "Aktif",
+      "is_subsidized": false,
+      "created_at": "2026-01-10 09:00:00"
+    },
+    {
+      "id": "CUST-ID-02",
+      "customer_no": "CUST-2026-0002",
+      "full_name": "Ibu Siti Aminah",
+      "nik": "3201012345670002",
+      "phone": "081234567802",
+      "address": "RT 01 / RW 01 Dusun Krajan",
+      "rt_rw": "RT 01 / RW 01",
+      "meter_no": "MTR-8802",
+      "tariff_id": "TRF-01",
+      "tariff_name": "Rumah Tangga Standar",
+      "status": "Aktif",
+      "is_subsidized": true,
+      "subsidy_type": "max_tagihan",
+      "subsidy_max_amount": 20000,
+      "subsidy_notes": "Subsidi BUMDes: Plafon Maks. Rp 20.000 / bln",
+      "created_at": "2026-01-12 10:00:00"
+    },
+    {
+      "id": "CUST-ID-05",
+      "customer_no": "CUST-2026-0005",
+      "full_name": "Masjid Jami Al-Ikhlas",
+      "nik": "3201012345670005",
+      "phone": "081234567805",
+      "address": "Alun-alun Desa RT 01 / RW 02",
+      "rt_rw": "RT 01 / RW 02",
+      "meter_no": "MTR-8805",
+      "tariff_id": "TRF-03",
+      "tariff_name": "Sosial & Tempat Ibadah",
+      "status": "Aktif",
+      "is_subsidized": true,
+      "subsidy_type": "gratis",
+      "subsidy_max_amount": 0,
+      "subsidy_notes": "Subsidi 100% Gratis (Tempat Ibadah Warga)",
+      "created_at": "2026-01-25 14:00:00"
     }
   ],
   "tariffs": [

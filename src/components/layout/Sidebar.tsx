@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
+import { DarkModeToggle } from '../common/DarkModeToggle';
 
 export interface SidebarProps {
   isOpen: boolean;
@@ -160,6 +161,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               </NavLink>
 
               <div className="nav-section-title">Layanan Warga</div>
+              <NavLink to="/operator/tokens" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={handleNavClick}>
+                <span className="nav-item-icon"><Key size={18} /></span>
+                <span>Token Registrasi</span>
+              </NavLink>
               <NavLink to="/operator/complaints" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={handleNavClick}>
                 <span className="nav-item-icon"><MessageSquareWarning size={18} /></span>
                 <span>Keluhan Warga</span>
@@ -224,6 +229,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               <div className="user-name">{user?.fullName || 'Pengguna'}</div>
               <div className="user-role-label">{role}</div>
             </div>
+            <DarkModeToggle style={{ padding: '4px 6px' }} />
           </div>
           <button
             type="button"

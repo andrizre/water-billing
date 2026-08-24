@@ -26,6 +26,7 @@ export function initDatabase() {
       salt TEXT NOT NULL,
       full_name TEXT NOT NULL,
       role TEXT NOT NULL CHECK(role IN ('admin', 'operator', 'customer')),
+      assigned_rt TEXT,
       email TEXT,
       phone TEXT,
       is_active INTEGER NOT NULL DEFAULT 1,
@@ -66,9 +67,16 @@ export function initDatabase() {
       phone TEXT,
       address TEXT,
       rt_rw TEXT,
+      meter_id TEXT,
       meter_no TEXT,
+      current_reading REAL DEFAULT 0,
       tariff_id TEXT,
+      tariff_name TEXT,
       status TEXT NOT NULL DEFAULT 'Aktif',
+      is_subsidized INTEGER NOT NULL DEFAULT 0,
+      subsidy_type TEXT DEFAULT 'none',
+      subsidy_max_amount REAL DEFAULT 0,
+      subsidy_notes TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
@@ -80,6 +88,8 @@ export function initDatabase() {
       id TEXT PRIMARY KEY,
       meter_no TEXT UNIQUE NOT NULL,
       customer_id TEXT,
+      customer_name TEXT,
+      customer_no TEXT,
       brand TEXT,
       installation_date TEXT,
       initial_reading REAL NOT NULL DEFAULT 0,
@@ -96,7 +106,11 @@ export function initDatabase() {
       id TEXT PRIMARY KEY,
       reading_no TEXT UNIQUE NOT NULL,
       customer_id TEXT NOT NULL,
+      customer_name TEXT,
+      customer_no TEXT,
+      rt_rw TEXT,
       meter_id TEXT,
+      meter_no TEXT,
       period_month INTEGER NOT NULL,
       period_year INTEGER NOT NULL,
       prev_reading REAL NOT NULL DEFAULT 0,
@@ -104,7 +118,9 @@ export function initDatabase() {
       usage_m3 REAL NOT NULL DEFAULT 0,
       reading_date TEXT NOT NULL,
       reader_id TEXT,
+      reader_name TEXT,
       notes TEXT,
+      photo_url TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
@@ -116,15 +132,25 @@ export function initDatabase() {
       id TEXT PRIMARY KEY,
       bill_no TEXT UNIQUE NOT NULL,
       customer_id TEXT NOT NULL,
+      customer_name TEXT,
+      customer_no TEXT,
+      rt_rw TEXT,
+      phone TEXT,
       reading_id TEXT,
       period_month INTEGER NOT NULL,
       period_year INTEGER NOT NULL,
       prev_reading REAL NOT NULL DEFAULT 0,
       current_reading REAL NOT NULL DEFAULT 0,
       usage_m3 REAL NOT NULL DEFAULT 0,
-      base_fee REAL NOT NULL DEFAULT 0,
+      base_amount REAL NOT NULL DEFAULT 0,
       usage_amount REAL NOT NULL DEFAULT 0,
-      penalty_fee REAL NOT NULL DEFAULT 0,
+      late_fee REAL NOT NULL DEFAULT 0,
+      admin_fee REAL NOT NULL DEFAULT 0,
+      original_amount REAL DEFAULT 0,
+      subsidy_amount REAL DEFAULT 0,
+      is_subsidized INTEGER NOT NULL DEFAULT 0,
+      subsidy_type TEXT DEFAULT 'none',
+      subsidy_notes TEXT,
       total_amount REAL NOT NULL DEFAULT 0,
       paid_amount REAL NOT NULL DEFAULT 0,
       balance_due REAL NOT NULL DEFAULT 0,
@@ -141,11 +167,18 @@ export function initDatabase() {
       id TEXT PRIMARY KEY,
       payment_no TEXT UNIQUE NOT NULL,
       bill_id TEXT NOT NULL,
+      bill_no TEXT,
+      period_month INTEGER,
+      period_year INTEGER,
       customer_id TEXT NOT NULL,
-      amount_paid REAL NOT NULL DEFAULT 0,
+      customer_name TEXT,
+      customer_no TEXT,
+      rt_rw TEXT,
       payment_date TEXT NOT NULL,
+      amount_paid REAL NOT NULL DEFAULT 0,
       payment_method TEXT NOT NULL DEFAULT 'Tunai',
       cashier_id TEXT,
+      cashier_name TEXT,
       notes TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
@@ -170,6 +203,96 @@ export function initDatabase() {
       action TEXT NOT NULL,
       details TEXT,
       ip_address TEXT,
+      created_at TEXT NOT NULL
+    );
+  `);
+
+  // 10. Announcements Table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS announcements (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      target_audience TEXT NOT NULL DEFAULT 'all',
+      priority TEXT NOT NULL DEFAULT 'normal',
+      is_active INTEGER NOT NULL DEFAULT 1,
+      created_by TEXT DEFAULT 'Administrator',
+      created_at TEXT NOT NULL,
+      updated_at TEXT
+    );
+  `);
+
+  // 11. Complaints Table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS complaints (
+      id TEXT PRIMARY KEY,
+      complaint_no TEXT UNIQUE NOT NULL,
+      customer_id TEXT NOT NULL,
+      customer_name TEXT NOT NULL,
+      customer_no TEXT NOT NULL,
+      phone TEXT,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      category TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'Menunggu',
+      response_notes TEXT,
+      handled_by TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT
+    );
+  `);
+
+  // 12. Subscription Requests Table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS subscription_requests (
+      id TEXT PRIMARY KEY,
+      request_no TEXT UNIQUE NOT NULL,
+      customer_id TEXT NOT NULL,
+      customer_name TEXT NOT NULL,
+      customer_no TEXT NOT NULL,
+      phone TEXT,
+      current_tariff_id TEXT,
+      current_tariff_name TEXT NOT NULL,
+      requested_tariff_id TEXT NOT NULL,
+      requested_tariff_name TEXT NOT NULL,
+      reason TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'Menunggu',
+      response_notes TEXT,
+      handled_by TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT
+    );
+  `);
+
+  // 13. Registration Tokens Table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS registration_tokens (
+      id TEXT PRIMARY KEY,
+      token TEXT UNIQUE NOT NULL,
+      recipient_name TEXT,
+      target_role TEXT NOT NULL DEFAULT 'customer',
+      default_tariff_id TEXT,
+      is_used INTEGER NOT NULL DEFAULT 0,
+      used_by_username TEXT,
+      used_at TEXT,
+      created_by TEXT DEFAULT 'Administrator',
+      notes TEXT,
+      created_at TEXT NOT NULL
+    );
+  `);
+
+  // 14. Maintenance Expenses Table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS maintenance_expenses (
+      id TEXT PRIMARY KEY,
+      expense_no TEXT UNIQUE NOT NULL,
+      category TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      amount REAL NOT NULL DEFAULT 0,
+      expense_date TEXT NOT NULL,
+      recorded_by TEXT DEFAULT 'Admin BUMDes',
+      receipt_photo_url TEXT,
       created_at TEXT NOT NULL
     );
   `);

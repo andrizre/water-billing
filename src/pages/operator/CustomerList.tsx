@@ -7,6 +7,7 @@ import { Select } from '../../components/common/Select';
 import { Badge } from '../../components/common/Badge';
 import { DataTable } from '../../components/common/DataTable';
 import { Pagination } from '../../components/common/Pagination';
+import { useAuth } from '../../context/AuthContext';
 import { useDebounce } from '../../hooks/useDebounce';
 import { usePagination } from '../../hooks/usePagination';
 import { useToast } from '../../context/ToastContext';
@@ -15,6 +16,7 @@ import { Customer } from '../../types';
 import { formatM3 } from '../../utils/formatters';
 
 export const CustomerList: React.FC = () => {
+  const { user, role } = useAuth();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [search, setSearch] = useState<string>('');
@@ -26,17 +28,20 @@ export const CustomerList: React.FC = () => {
   const fetchCustomers = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await api.getCustomers({
+      let data = await api.getCustomers({
         search: debouncedSearch,
         rt_rw: rtrwFilter
       });
+      if (role === 'operator' && user?.assigned_rt && user.assigned_rt !== 'Semua RT') {
+        data = data.filter((c: Customer) => c.rt_rw && c.rt_rw.includes(user.assigned_rt!));
+      }
       setCustomers(data);
     } catch (err: any) {
       toastError(err.message || 'Gagal memuat data pelanggan.');
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearch, rtrwFilter, toastError]);
+  }, [debouncedSearch, rtrwFilter, toastError, role, user?.assigned_rt]);
 
   useEffect(() => {
     fetchCustomers();
@@ -97,6 +102,16 @@ export const CustomerList: React.FC = () => {
       <PageHeader
         title="Daftar Pelanggan Air Minum Desa"
         subtitle="Pencarian data sambungan meteran air warga, alamat dusun, dan kontak darurat lapangan."
+        action={
+          user?.assigned_rt && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, backgroundColor: 'var(--primary-50)', border: '1px solid var(--primary-200)', padding: '6px 12px', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 700, color: 'var(--primary-700)' }}>
+              <span>Wilayah Tugas:</span>
+              <span style={{ backgroundColor: 'var(--primary-600)', color: '#fff', padding: '2px 8px', borderRadius: 4, fontSize: 12 }}>
+                {user.assigned_rt}
+              </span>
+            </div>
+          )
+        }
       />
 
       <Card bodyClassName="p-4" style={{ marginBottom: 20 }}>

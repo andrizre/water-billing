@@ -22,11 +22,13 @@ import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { DataTable } from '../../components/common/DataTable';
 import { PaymentReceiptModal } from '../../components/print/PaymentReceiptPrint';
 import { AnnouncementBanner } from '../../components/common/AnnouncementBanner';
+import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 import { AdminDashboardData, Payment } from '../../types';
 import { formatRupiah, formatM3, formatDateTime, formatPeriod } from '../../utils/formatters';
 
 export const OperatorDashboard: React.FC = () => {
+  const { user, role } = useAuth();
   const [data, setData] = useState<AdminDashboardData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -72,13 +74,25 @@ export const OperatorDashboard: React.FC = () => {
 
   const { stats, recent_payments, recent_readings } = data;
 
+  const displayReadings = role === 'operator' && user?.assigned_rt && user.assigned_rt !== 'Semua RT'
+    ? recent_readings.filter((r) => r.rt_rw && r.rt_rw.includes(user.assigned_rt!))
+    : recent_readings;
+
   return (
     <div className="fade-in">
       <PageHeader
-        title="Dashboard Petugas Operasional & Loket"
-        subtitle="Pencatatan meteran bulanan warga, kasir pembayaran rekening air, dan layanan pelanggan."
+        title={`Dashboard Petugas Lapangan ${user?.assigned_rt ? `(${user.assigned_rt})` : ''}`}
+        subtitle={`Selamat bertugas, ${user?.fullName || 'Petugas'}. Wilayah tugas pencatatan & operasional Anda: ${user?.assigned_rt || 'Seluruh RT'}.`}
         action={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            {user?.assigned_rt && (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, backgroundColor: 'var(--primary-50)', border: '1px solid var(--primary-200)', padding: '5px 10px', borderRadius: 'var(--radius-md)', fontSize: 12.5, fontWeight: 700, color: 'var(--primary-700)' }}>
+                <span>Wilayah Tugas:</span>
+                <span style={{ backgroundColor: 'var(--primary-600)', color: '#fff', padding: '2px 8px', borderRadius: 4, fontSize: 12 }}>
+                  {user.assigned_rt}
+                </span>
+              </div>
+            )}
             {/* Auto-Refresh Toggle */}
             <button
               type="button"
@@ -362,9 +376,9 @@ export const OperatorDashboard: React.FC = () => {
                 )
               }
             ]}
-            data={recent_readings}
+            data={displayReadings}
             emptyTitle="Belum Ada Catatan Meter"
-            emptyMessage="Belum ada data pencatatan meter terbaru."
+            emptyMessage="Belum ada data pencatatan meter di wilayah tugas Anda."
           />
         </Card>
 

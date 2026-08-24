@@ -4,6 +4,7 @@ import { Droplets, Key, User, Lock, Phone, MapPin, CheckCircle2, ArrowRight, Shi
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
+import { DarkModeToggle } from '../../components/common/DarkModeToggle';
 import { useToast } from '../../context/ToastContext';
 import { api } from '../../services/api';
 
@@ -59,33 +60,31 @@ export const RegisterPage: React.FC = () => {
       return;
     }
 
-    if (password.length < 6) {
-      toastError('Kata sandi minimal 6 karakter.');
-      return;
-    }
-
     if (password !== confirmPassword) {
       toastError('Konfirmasi kata sandi tidak cocok.');
       return;
     }
 
+    if (password.length < 6) {
+      toastError('Kata sandi minimal 6 karakter.');
+      return;
+    }
+
     try {
       setSubmitting(true);
-      const res = await api.registerWithToken({
-        tokenStr,
-        fullName,
+      await api.registerWithToken({
+        token: tokenStr,
+        full_name: fullName,
         nik,
         phone,
         address,
-        rtRw,
+        rt_rw: rtRw,
         username,
         password
       });
 
-      success(res.message || 'Pendaftaran berhasil! Silakan login dengan akun Anda.');
-      setTimeout(() => {
-        navigate('/login');
-      }, 1500);
+      success('Pendaftaran akun berhasil! Silakan masuk dengan akun baru Anda.');
+      navigate('/login');
     } catch (err: any) {
       toastError(err.message || 'Pendaftaran gagal.');
     } finally {
@@ -98,12 +97,19 @@ export const RegisterPage: React.FC = () => {
       style={{
         minHeight: '100vh',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: 'var(--slate-100)',
         padding: '24px 16px',
+        position: 'relative'
       }}
     >
+      {/* Floating Dark Mode Toggle */}
+      <div style={{ position: 'absolute', top: 16, right: 20, zIndex: 20 }}>
+        <DarkModeToggle showLabel />
+      </div>
+
       <div style={{ width: '100%', maxWidth: 520 }}>
         {/* Header Branding */}
         <div style={{ textAlign: 'center', marginBottom: 24 }}>

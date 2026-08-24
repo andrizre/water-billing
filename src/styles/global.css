@@ -13,8 +13,8 @@ html, body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
   background-color: var(--slate-50);
   color: var(--slate-800);
-  font-size: 13.5px;
-  line-height: 1.45;
+  font-size: 15px;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -47,6 +47,9 @@ button {
   display: flex;
   min-height: 100vh;
   width: 100%;
+  min-width: 0;
+  max-width: 100vw;
+  overflow-x: hidden;
   background-color: var(--slate-100);
 }
 
@@ -68,14 +71,14 @@ button {
   height: var(--header-height);
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 16px;
+  gap: 12px;
+  padding: 0 18px;
   border-bottom: 1px solid var(--slate-100);
 }
 
 .sidebar-logo {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-md);
   background: linear-gradient(135deg, var(--primary-600), var(--accent-500));
   display: flex;
@@ -87,44 +90,44 @@ button {
 }
 
 .sidebar-brand-title {
-  font-size: 13.5px;
+  font-size: 14.5px;
   font-weight: 700;
   color: var(--slate-900);
   line-height: 1.2;
 }
 
 .sidebar-brand-sub {
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--slate-500);
   font-weight: 500;
 }
 
 .sidebar-nav {
   flex: 1;
-  padding: 10px 8px;
+  padding: 12px 10px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
 .nav-section-title {
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   color: var(--slate-400);
   letter-spacing: 0.5px;
-  padding: 8px 10px 3px 10px;
+  padding: 10px 12px 4px 12px;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 7px 10px;
+  gap: 11px;
+  padding: 8px 12px;
   border-radius: var(--radius-md);
   color: var(--slate-600);
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 500;
   text-decoration: none;
   transition: all var(--transition-fast);
@@ -149,7 +152,7 @@ button {
 }
 
 .sidebar-footer {
-  padding: 10px 12px;
+  padding: 12px 14px;
   border-top: 1px solid var(--slate-200);
   display: flex;
   flex-direction: column;
@@ -160,16 +163,16 @@ button {
 .user-badge-container {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
+  gap: 10px;
+  padding: 7px 10px;
   border-radius: var(--radius-md);
   background-color: #ffffff;
   border: 1px solid var(--slate-200);
 }
 
 .user-avatar {
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   border-radius: var(--radius-full);
   background: linear-gradient(135deg, var(--slate-700), var(--slate-900));
   color: #ffffff;
@@ -177,7 +180,7 @@ button {
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .user-info {
@@ -186,7 +189,7 @@ button {
 }
 
 .user-name {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--slate-900);
   white-space: nowrap;
@@ -195,7 +198,7 @@ button {
 }
 
 .user-role-label {
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--slate-500);
   text-transform: capitalize;
 }
@@ -207,6 +210,10 @@ button {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  min-width: 0;
+  width: calc(100vw - var(--sidebar-width));
+  max-width: calc(100vw - var(--sidebar-width));
+  overflow-x: hidden;
   transition: margin-left var(--transition-normal);
 }
 
@@ -217,10 +224,12 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
+  padding: 0 24px;
   position: sticky;
   top: 0;
   z-index: 30;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .header-left {
@@ -242,7 +251,7 @@ button {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--slate-700);
 }
@@ -256,9 +265,9 @@ button {
 .demo-role-switcher {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   background-color: var(--slate-100);
-  padding: 3px;
+  padding: 4px;
   border-radius: var(--radius-md);
   border: 1px solid var(--slate-200);
 }
@@ -266,8 +275,8 @@ button {
 .demo-role-btn {
   border: none;
   background: transparent;
-  padding: 3px 8px;
-  font-size: 11.5px;
+  padding: 4px 10px;
+  font-size: 12px;
   font-weight: 500;
   border-radius: var(--radius-sm);
   color: var(--slate-600);
@@ -283,9 +292,12 @@ button {
 
 .page-content {
   flex: 1;
-  padding: 18px 22px;
+  padding: 22px 24px;
   max-width: 100%;
   width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow-x: hidden;
   margin: 0 auto;
 }
 
@@ -372,6 +384,8 @@ button {
 
   .main-wrapper {
     margin-left: 0;
+    width: 100%;
+    max-width: 100vw;
   }
 
   .menu-toggle-btn {

@@ -286,14 +286,26 @@ export const BillInvoiceModal: React.FC<BillInvoiceModalProps> = ({
                   </td>
                 </tr>
               )}
+              {((bill.is_subsidized && (bill.subsidy_amount || 0) > 0) || (breakdown.subsidy_amount && breakdown.subsidy_amount > 0)) && (
+                <tr style={{ borderBottom: '1px solid var(--slate-200)', color: 'var(--success-700)', backgroundColor: 'rgba(16, 185, 129, 0.08)' }}>
+                  <td style={{ padding: '8px 10px', fontWeight: 700 }}>
+                    Subsidi Air Desa BUMDes ({bill.subsidy_notes || customer?.subsidy_notes || (bill.subsidy_type === 'gratis' ? '100% Gratis' : 'Plafon Maksimal Bayar')})
+                  </td>
+                  <td style={{ padding: '8px 10px', textAlign: 'center' }}>-</td>
+                  <td style={{ padding: '8px 10px', textAlign: 'right' }}>Subsidi</td>
+                  <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700 }}>
+                    -{formatRupiah(bill.subsidy_amount || breakdown.subsidy_amount || 0)}
+                  </td>
+                </tr>
+              )}
             </tbody>
             <tfoot>
               <tr style={{ borderTop: '2px solid var(--slate-400)', backgroundColor: 'var(--slate-50)' }}>
                 <td colSpan={3} style={{ padding: '10px', fontWeight: 700, textAlign: 'right' }}>
                   TOTAL TAGIHAN:
                 </td>
-                <td style={{ padding: '10px', fontWeight: 800, textAlign: 'right', fontSize: 15, color: 'var(--slate-900)' }}>
-                  {formatRupiah(bill.total_amount)}
+                <td style={{ padding: '10px', fontWeight: 800, textAlign: 'right', fontSize: 15, color: bill.total_amount === 0 ? 'var(--success-700)' : 'var(--slate-900)' }}>
+                  {bill.total_amount === 0 ? 'Rp 0 (Gratis)' : formatRupiah(bill.total_amount)}
                 </td>
               </tr>
               {bill.paid_amount > 0 && (

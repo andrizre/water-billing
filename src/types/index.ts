@@ -11,11 +11,14 @@ export interface User {
   role: UserRole;
   email?: string;
   phone?: string;
+  assigned_rt?: string;
   is_active: boolean;
   customer_id?: string;
   created_at?: string;
   updated_at?: string;
 }
+
+export type SubsidyType = 'gratis' | 'max_tagihan' | 'none';
 
 export interface Customer {
   id: string;
@@ -31,6 +34,10 @@ export interface Customer {
   tariff_id?: string;
   tariff_name?: string;
   status: 'Aktif' | 'Nonaktif' | 'Ditangguhkan';
+  is_subsidized?: boolean;
+  subsidy_type?: SubsidyType;
+  subsidy_max_amount?: number;
+  subsidy_notes?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -108,6 +115,11 @@ export interface Bill {
   usage_amount: number;
   late_fee: number;
   admin_fee?: number;
+  original_amount?: number;
+  subsidy_amount?: number;
+  is_subsidized?: boolean;
+  subsidy_type?: SubsidyType | string;
+  subsidy_notes?: string;
   total_amount: number;
   paid_amount: number;
   balance_due: number;
@@ -303,6 +315,12 @@ export interface BillBreakdown {
   usage_amount: number;
   late_fee: number;
   admin_fee?: number;
+  raw_total?: number;
+  original_amount?: number;
+  subsidy_amount?: number;
+  is_subsidized?: boolean;
+  subsidy_type?: SubsidyType | string;
+  subsidy_notes?: string;
   total_amount: number;
 }
 
@@ -321,6 +339,7 @@ export interface AuthSession {
     username: string;
     fullName: string;
     role: UserRole;
+    assigned_rt?: string;
     email?: string;
     phone?: string;
     customerId?: string;
