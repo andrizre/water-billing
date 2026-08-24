@@ -48,7 +48,7 @@ export const CustomerDashboard: React.FC = () => {
   const fetchCustomerData = useCallback(async (isManual = false) => {
     try {
       if (isManual) setRefreshing(true);
-      else if (!data) setLoading(true);
+      else setLoading(true);
 
       const res = await api.getDashboardSummary();
       setData(res);
@@ -59,7 +59,7 @@ export const CustomerDashboard: React.FC = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [data]);
+  }, []);
 
   useEffect(() => {
     fetchCustomerData();

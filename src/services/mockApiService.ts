@@ -52,7 +52,12 @@ interface MockDatabase {
   maintenanceExpenses: MaintenanceExpense[];
 }
 
+let _cachedDb: MockDatabase | null = null;
+let _saveTimeout: any = null;
+
 function getDatabase(): MockDatabase {
+  if (_cachedDb) return _cachedDb;
+
   let db = storage.getMockDb();
   if (!db || !db.users || db.users.length === 0) {
     db = {
@@ -78,11 +83,18 @@ function getDatabase(): MockDatabase {
   if (!db.subscriptionRequests) db.subscriptionRequests = [...initialSubscriptionRequests];
   if (!db.registrationTokens) db.registrationTokens = [...initialRegistrationTokens];
   if (!db.maintenanceExpenses) db.maintenanceExpenses = [...initialMaintenanceExpenses];
+  
+  _cachedDb = db;
   return db;
 }
 
 function saveDatabase(db: MockDatabase): void {
-  storage.setMockDb(db);
+  _cachedDb = db;
+  // Non-blocking microtask flush to LocalStorage
+  if (_saveTimeout) clearTimeout(_saveTimeout);
+  _saveTimeout = setTimeout(() => {
+    storage.setMockDb(db);
+  }, 10);
 }
 
 function nowTimeString(): string {
@@ -1314,6 +1326,7 @@ export const mockApiService = {
   },
 
   async resetToDefault(): Promise<void> {
+    _cachedDb = null;
     localStorage.removeItem('sandmosquito_mock_database_v1');
     getDatabase(); // reinitialize
   },

@@ -1370,24 +1370,26 @@
   color: #64748b !important;
 }
 
-/* Universal Inline Color Cleanups inside Dark Theme */
-[data-theme="dark"] div[style*="background-color: #ffffff"],
-[data-theme="dark"] div[style*="backgroundColor: #ffffff"],
-[data-theme="dark"] div[style*="background: #ffffff"],
-[data-theme="dark"] div[style*="backgroundColor: rgb(255, 255, 255)"],
-[data-theme="dark"] div[style*="background-color: rgb(255, 255, 255)"] {
-  background-color: #1e293b !important;
-  color: #f8fafc !important;
-  border-color: #334155 !important;
-}
+/* Universal Inline Color Cleanups inside Dark Theme (Screen Only) */
+@media screen {
+  [data-theme="dark"] div[style*="background-color: #ffffff"],
+  [data-theme="dark"] div[style*="backgroundColor: #ffffff"],
+  [data-theme="dark"] div[style*="background: #ffffff"],
+  [data-theme="dark"] div[style*="backgroundColor: rgb(255, 255, 255)"],
+  [data-theme="dark"] div[style*="background-color: rgb(255, 255, 255)"] {
+    background-color: #1e293b !important;
+    color: #f8fafc !important;
+    border-color: #334155 !important;
+  }
 
-[data-theme="dark"] div[style*="background-color: var(--slate-50)"],
-[data-theme="dark"] div[style*="backgroundColor: var(--slate-50)"],
-[data-theme="dark"] div[style*="background-color: var(--slate-100)"],
-[data-theme="dark"] div[style*="backgroundColor: var(--slate-100)"] {
-  background-color: #0f172a !important;
-  color: #f1f5f9 !important;
-  border-color: #334155 !important;
+  [data-theme="dark"] div[style*="background-color: var(--slate-50)"],
+  [data-theme="dark"] div[style*="backgroundColor: var(--slate-50)"],
+  [data-theme="dark"] div[style*="background-color: var(--slate-100)"],
+  [data-theme="dark"] div[style*="backgroundColor: var(--slate-100)"] {
+    background-color: #0f172a !important;
+    color: #f1f5f9 !important;
+    border-color: #334155 !important;
+  }
 }
 
 /* 13. THERMAL RECEIPT PRINT STYLES (58mm POS) */

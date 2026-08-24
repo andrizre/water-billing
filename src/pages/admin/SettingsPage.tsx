@@ -83,6 +83,33 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
+  const handleSwitchBackend = async (backendId: BackendType) => {
+    if (backendId === activeBackend) return;
+
+    if (backendId === 'supabase' && !isSupabaseConfigured()) {
+      toastError('Kredensial Supabase (VITE_SUPABASE_URL / ANON_KEY) belum diisi di .env.');
+      return;
+    }
+
+    if (backendId === 'sqlite' && sqliteStatus?.status !== 'online') {
+      const confirmSwitch = window.confirm(
+        'Server SQLite lokal (http://localhost:3001) tampaknya belum aktif. Apakah Anda ingin tetap mengaktifkannya? (Pastikan jalankan terminal: npm run server)'
+      );
+      if (!confirmSwitch) return;
+    }
+
+    if (backendId === 'gas' && !import.meta.env.VITE_GAS_API_URL) {
+      toastError('VITE_GAS_API_URL belum dikonfigurasi di file .env.');
+      return;
+    }
+
+    api.setActiveBackend(backendId);
+    success(`Berhasil beralih ke Database: ${backendId.toUpperCase()}! Sistem memuat ulang...`);
+    setTimeout(() => {
+      window.location.reload();
+    }, 600);
+  };
+
   const databaseOptions: {
     id: BackendType;
     name: string;
@@ -94,12 +121,12 @@ export const SettingsPage: React.FC = () => {
   }[] = [
     {
       id: 'supabase',
-      name: '1. Supabase Cloud Database (Default Rekomendasi)',
+      name: '1. Supabase Cloud Database',
       description: 'Database PostgreSQL cloud terkelola dengan performa tinggi, backup otomatis, dan real-time sync.',
       icon: <Cloud size={20} color="var(--primary-600)" />,
       status: activeBackend === 'supabase' ? 'active' : isSupabaseConfigured() ? 'ready' : 'offline',
-      statusText: isSupabaseConfigured() ? 'Terkoneksi (Aktif)' : 'Kredensial belum diisi di .env',
-      instructions: 'Atur VITE_ACTIVE_BACKEND=supabase di file .env untuk mengaktifkan.',
+      statusText: isSupabaseConfigured() ? 'Terkoneksi (Aktif / Siap)' : 'Kredensial belum diisi di .env',
+      instructions: 'Isi VITE_SUPABASE_URL & ANON_KEY di .env atau klik tombol aktifkan di samping.',
     },
     {
       id: 'sqlite',
@@ -108,7 +135,7 @@ export const SettingsPage: React.FC = () => {
       icon: <HardDrive size={20} color="var(--accent-600)" />,
       status: activeBackend === 'sqlite' ? 'active' : sqliteStatus?.status === 'online' ? 'ready' : 'offline',
       statusText: sqliteStatus?.status === 'online' ? 'Server Aktif (Port 3001)' : 'Server Offline (Jalankan: npm run server)',
-      instructions: 'Jalankan terminal: npm run server lalu atur VITE_ACTIVE_BACKEND=sqlite di .env.',
+      instructions: 'Jalankan terminal: npm run server lalu klik tombol aktifkan.',
     },
     {
       id: 'gas',
@@ -117,7 +144,7 @@ export const SettingsPage: React.FC = () => {
       icon: <Database size={20} color="var(--warning-600)" />,
       status: activeBackend === 'gas' ? 'active' : import.meta.env.VITE_GAS_API_URL ? 'ready' : 'offline',
       statusText: import.meta.env.VITE_GAS_API_URL ? 'URL Dikonfigurasi' : 'URL GAS belum diisi di .env',
-      instructions: 'Deploy script di folder google-apps-script lalu isi VITE_GAS_API_URL dan VITE_ACTIVE_BACKEND=gas di .env.',
+      instructions: 'Deploy script di google-apps-script lalu isi VITE_GAS_API_URL di .env.',
     },
     {
       id: 'mock',
@@ -125,8 +152,8 @@ export const SettingsPage: React.FC = () => {
       description: 'Penyimpanan in-memory di browser tanpa server atau internet, cocok untuk demonstrasi cepat.',
       icon: <Zap size={20} color="var(--slate-600)" />,
       status: activeBackend === 'mock' ? 'active' : 'ready',
-      statusText: 'Siap Digunakan di Browser',
-      instructions: 'Atur VITE_ACTIVE_BACKEND=mock di file .env.',
+      statusText: 'Siap Digunakan di Browser (100% Fleksibel)',
+      instructions: 'Klik tombol di samping untuk beralih kapan saja.',
     },
   ];
 
@@ -331,7 +358,7 @@ export const SettingsPage: React.FC = () => {
                 key={opt.id}
                 style={{
                   display: 'flex',
-                  alignItems: 'flex-start',
+                  alignItems: 'center',
                   justifyContent: 'space-between',
                   gap: 16,
                   padding: 16,
@@ -340,9 +367,10 @@ export const SettingsPage: React.FC = () => {
                   backgroundColor: isActive ? 'var(--primary-50)' : 'var(--card-bg)',
                   boxShadow: isActive ? '0 4px 12px rgba(2, 132, 199, 0.15)' : 'var(--shadow-card)',
                   transition: 'all 0.2s ease',
+                  flexWrap: 'wrap'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, flex: 1, minWidth: 280 }}>
                   <div
                     style={{
                       width: 42,
@@ -389,9 +417,26 @@ export const SettingsPage: React.FC = () => {
                     <div style={{ fontSize: 12, color: 'var(--slate-500)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                       <span><strong>Status:</strong> {opt.statusText}</span>
                       <span>•</span>
-                      <span><strong>Cara Aktivasi:</strong> <code>{opt.instructions}</code></span>
+                      <span><strong>Petunjuk:</strong> <code>{opt.instructions}</code></span>
                     </div>
                   </div>
+                </div>
+
+                <div style={{ alignSelf: 'center', minWidth: 140, textAlign: 'right' }}>
+                  {isActive ? (
+                    <Button variant="secondary" size="sm" disabled icon={<Check size={14} />}>
+                      Sedang Aktif
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      icon={<Zap size={14} />}
+                      onClick={() => handleSwitchBackend(opt.id)}
+                    >
+                      Pilih & Aktifkan
+                    </Button>
+                  )}
                 </div>
               </div>
             );

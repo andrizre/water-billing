@@ -109,9 +109,10 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
             <span className="desktop-text-only">Cek Tagihan</span>
           </Link>
 
-          {/* Dynamic Backend Status Indicator */}
-          <div
-            title={badgeInfo.tooltip}
+          {/* Dynamic Backend Status Indicator (Clickable to Settings) */}
+          <Link
+            to="/admin/settings"
+            title={`${badgeInfo.tooltip} (Klik untuk ganti database)`}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -123,11 +124,13 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
               padding: '3px 7px',
               borderRadius: 9999,
               border: `1px solid ${badgeInfo.borderColor}`,
-              cursor: 'default',
+              cursor: 'pointer',
               userSelect: 'none',
               transition: 'all 0.3s ease',
               whiteSpace: 'nowrap',
+              textDecoration: 'none'
             }}
+            className="hover-lift"
           >
             <span
               style={{
@@ -143,7 +146,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
             />
             {badgeInfo.icon}
             <span className="desktop-text-only">{badgeInfo.label}</span>
-          </div>
+          </Link>
         </div>
       </div>
 

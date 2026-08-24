@@ -5,21 +5,52 @@ import { isSupabaseConfigured } from './supabaseClient';
 
 export type BackendType = 'supabase' | 'sqlite' | 'gas' | 'mock';
 
-const ACTIVE_BACKEND: BackendType = (import.meta.env.VITE_ACTIVE_BACKEND as BackendType) || 'supabase';
 const GAS_API_URL = import.meta.env.VITE_GAS_API_URL || '';
 const SQLITE_API_URL = import.meta.env.VITE_SQLITE_API_URL || 'http://localhost:3001';
 
 /**
- * Returns the currently active backend type configured in .env
+ * Returns the currently active backend type (checks localStorage first, then .env, with safe mock fallback)
  */
 export function getActiveBackend(): BackendType {
-  return ACTIVE_BACKEND;
+  const saved = storage.getActiveBackend() as BackendType | null;
+  if (saved && (saved === 'supabase' || saved === 'sqlite' || saved === 'gas' || saved === 'mock')) {
+    return saved;
+  }
+  const envBackend = (import.meta.env.VITE_ACTIVE_BACKEND as BackendType) || 'supabase';
+  if (envBackend === 'supabase' && !isSupabaseConfigured()) {
+    return 'mock';
+  }
+  return envBackend;
+}
+
+/**
+ * Dynamically switch the active database backend
+ */
+export function setActiveBackend(backend: BackendType): void {
+  storage.setActiveBackend(backend);
+}
+
+/**
+ * Helper to wrap any async operation with a strict timeout
+ */
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 6000, errorMsg: string): Promise<T> {
+  let timer: any;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error(errorMsg));
+    }, timeoutMs);
+  });
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /**
  * Universal Multi-Backend API Requester
- * Directed by VITE_ACTIVE_BACKEND in .env (Default: supabase).
- * If the selected backend is unavailable, it throws an informative error instead of silent fallback.
+ * Directed by localStorage selection or VITE_ACTIVE_BACKEND in .env (Default: supabase/mock).
+ * Uses strict timeout to prevent website freezing on offline or slow backends.
  */
 async function callApi<T = any>(action: string, data: any = {}): Promise<T> {
   const backend = getActiveBackend();
@@ -28,24 +59,38 @@ async function callApi<T = any>(action: string, data: any = {}): Promise<T> {
     case 'supabase': {
       if (!isSupabaseConfigured()) {
         throw new Error(
-          'Supabase dipilih sebagai backend aktif, tetapi VITE_SUPABASE_URL atau VITE_SUPABASE_ANON_KEY belum diisi di .env.'
+          'Supabase belum dikonfigurasi di .env. Anda dapat beralih ke Mode SQLite atau Mode Simulasi Browser di Pengaturan.'
         );
       }
-      return handleSupabaseCall<T>(action, data);
+      try {
+        return await withTimeout<T>(
+          handleSupabaseCall<T>(action, data),
+          7000,
+          'Koneksi ke Supabase Cloud timeout (melebihi batas waktu). Periksa koneksi internet Anda atau beralih ke backend lain.'
+        );
+      } catch (err: any) {
+        if (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+          throw new Error('Gagal menghubungi Supabase Cloud. Periksa URL/Key di .env atau beralih ke Mode SQLite / Mock.');
+        }
+        throw err;
+      }
     }
 
     case 'sqlite': {
       const token = storage.getToken() || '';
       try {
-        const response = await fetch(SQLITE_API_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': token ? `Bearer ${token}` : ''
-          },
-          body: JSON.stringify({ action: normalizeActionForServer(action), ...data }),
-          signal: AbortSignal.timeout(5000)
-        });
+        const response = await withTimeout<Response>(
+          fetch(SQLITE_API_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': token ? `Bearer ${token}` : ''
+            },
+            body: JSON.stringify({ action: normalizeActionForServer(action), ...data })
+          }),
+          5000,
+          `Server SQLite lokal (${SQLITE_API_URL}) tidak merespons (timeout). Pastikan terminal 'npm run server' sudah dijalankan.`
+        );
 
         if (!response.ok) {
           throw new Error(`Server SQLite merespons dengan status ${response.status}.`);
@@ -57,9 +102,9 @@ async function callApi<T = any>(action: string, data: any = {}): Promise<T> {
         }
         return unwrapServerResponse(action, result) as T;
       } catch (err: any) {
-        if (err.name === 'AbortError' || err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+        if (err.name === 'AbortError' || err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError') || err.message?.includes('timeout')) {
           throw new Error(
-            `Server SQLite lokal (${SQLITE_API_URL}) tidak berjalan. Silakan jalankan 'npm run server' di terminal.`
+            `Server SQLite lokal (${SQLITE_API_URL}) tidak berjalan atau timeout. Silakan jalankan 'npm run server' di terminal atau pilih backend lain.`
           );
         }
         throw err;
@@ -75,21 +120,32 @@ async function callApi<T = any>(action: string, data: any = {}): Promise<T> {
       const token = storage.getToken() || '';
       const payload = { action, token, data };
 
-      const response = await fetch(GAS_API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(payload)
-      });
+      try {
+        const response = await withTimeout<Response>(
+          fetch(GAS_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload)
+          }),
+          8000,
+          'Koneksi Google Apps Script timeout (melebihi batas waktu 8 detik).'
+        );
 
-      if (!response.ok) {
-        throw new Error(`Server Google Apps Script merespons dengan status ${response.status}.`);
-      }
+        if (!response.ok) {
+          throw new Error(`Server Google Apps Script merespons dengan status ${response.status}.`);
+        }
 
-      const result = await response.json();
-      if (result.success || result.status === 200 || result.status === 201) {
-        return (result.data || result) as T;
+        const result = await response.json();
+        if (result.success || result.status === 200 || result.status === 201) {
+          return (result.data || result) as T;
+        }
+        throw new Error(result.message || result.error || 'Permintaan gagal diproses pada GAS.');
+      } catch (err: any) {
+        if (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+          throw new Error('Gagal menghubungi Google Apps Script. Periksa URL Web App di .env.');
+        }
+        throw err;
       }
-      throw new Error(result.message || result.error || 'Permintaan gagal diproses pada GAS.');
     }
 
     case 'mock':
@@ -575,6 +631,7 @@ export const api = {
   // Reset demo
   resetMockData: () => mockApiService.resetToDefault(),
 
-  // Active backend helper
-  getActiveBackend
+  // Active backend helpers
+  getActiveBackend,
+  setActiveBackend
 };

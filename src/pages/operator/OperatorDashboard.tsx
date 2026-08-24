@@ -29,10 +29,13 @@ import { formatRupiah, formatM3, formatDateTime, formatPeriod } from '../../util
 
 export const OperatorDashboard: React.FC = () => {
   const { user, role } = useAuth();
+  const activeBackend = api.getActiveBackend();
+  const isMock = activeBackend === 'mock';
+
   const [data, setData] = useState<AdminDashboardData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
-  const [autoRefresh, setAutoRefresh] = useState<boolean>(true);
+  const [autoRefresh, setAutoRefresh] = useState<boolean>(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [receiptModalOpen, setReceiptModalOpen] = useState<boolean>(false);
@@ -40,7 +43,7 @@ export const OperatorDashboard: React.FC = () => {
   const fetchDashboardData = useCallback(async (isManual = false) => {
     try {
       if (isManual) setRefreshing(true);
-      else if (!data) setLoading(true);
+      else setLoading(true);
 
       const res = await api.getDashboardSummary();
       setData(res);
@@ -51,20 +54,20 @@ export const OperatorDashboard: React.FC = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [data]);
+  }, []);
 
   useEffect(() => {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  // Auto refresh every 15 seconds when enabled
+  // Auto refresh every 20 seconds only when enabled and not in mock mode
   useEffect(() => {
-    if (!autoRefresh) return;
+    if (!autoRefresh || isMock) return;
     const timer = setInterval(() => {
       fetchDashboardData(false);
-    }, 15000);
+    }, 20000);
     return () => clearInterval(timer);
-  }, [autoRefresh, fetchDashboardData]);
+  }, [autoRefresh, isMock, fetchDashboardData]);
 
   if (loading && !data) {
     return <LoadingSpinner text="Memuat dashboard operasional..." />;
@@ -93,29 +96,31 @@ export const OperatorDashboard: React.FC = () => {
                 </span>
               </div>
             )}
-            {/* Auto-Refresh Toggle */}
-            <button
-              type="button"
-              onClick={() => setAutoRefresh(!autoRefresh)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 5,
-                fontSize: 12,
-                fontWeight: 600,
-                padding: '6px 12px',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--slate-200)',
-                backgroundColor: autoRefresh ? 'var(--primary-50)' : 'var(--slate-50)',
-                color: autoRefresh ? 'var(--primary-700)' : 'var(--slate-600)',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-              }}
-              title="Aktifkan/nonaktifkan pembaruan otomatis setiap 15 detik"
-            >
-              <Activity size={13} className={autoRefresh ? 'text-primary-600 animate-pulse' : ''} />
-              <span>Live: {autoRefresh ? 'ON' : 'OFF'}</span>
-            </button>
+            {/* Auto-Refresh Toggle (Hidden in LocalStorage Mock Mode) */}
+            {!isMock && (
+              <button
+                type="button"
+                onClick={() => setAutoRefresh(!autoRefresh)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  padding: '6px 12px',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--slate-200)',
+                  backgroundColor: autoRefresh ? 'var(--primary-50)' : 'var(--slate-50)',
+                  color: autoRefresh ? 'var(--primary-700)' : 'var(--slate-600)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+                title="Aktifkan/nonaktifkan pembaruan otomatis setiap 20 detik"
+              >
+                <Activity size={13} className={autoRefresh ? 'text-primary-600 animate-pulse' : ''} />
+                <span>Live Sync: {autoRefresh ? 'ON' : 'OFF'}</span>
+              </button>
+            )}
 
             {/* Manual Refresh */}
             <Button

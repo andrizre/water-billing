@@ -6,8 +6,25 @@ const TOKEN_KEY = 'sandmosquito_auth_token';
 const USER_KEY = 'sandmosquito_auth_user';
 const MOCK_DB_KEY = 'sandmosquito_mock_database_v1';
 const SETTINGS_KEY = 'sandmosquito_app_settings';
+const ACTIVE_BACKEND_KEY = 'sandmosquito_active_backend';
 
 export const storage = {
+  getActiveBackend(): string | null {
+    try {
+      return localStorage.getItem(ACTIVE_BACKEND_KEY);
+    } catch {
+      return null;
+    }
+  },
+
+  setActiveBackend(backend: string): void {
+    try {
+      localStorage.setItem(ACTIVE_BACKEND_KEY, backend);
+    } catch (e) {
+      console.error('Failed to save active backend:', e);
+    }
+  },
+
   getToken(): string | null {
     try {
       return localStorage.getItem(TOKEN_KEY);
