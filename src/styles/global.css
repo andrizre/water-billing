@@ -151,6 +151,77 @@ button {
   color: inherit;
 }
 
+/* Sidebar Notification Badges & Action Dots */
+.nav-badge {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.2px;
+  transition: all var(--transition-fast);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.nav-badge-danger {
+  background-color: #ef4444;
+  color: #ffffff;
+  animation: pulseBadge 2.2s infinite ease-in-out;
+}
+
+.nav-badge-warning {
+  background-color: #f59e0b;
+  color: #ffffff;
+}
+
+.nav-badge-primary {
+  background-color: var(--primary-600);
+  color: #ffffff;
+}
+
+.nav-badge-dot {
+  margin-left: auto;
+  width: 8.5px;
+  height: 8.5px;
+  border-radius: 50%;
+  background-color: #ef4444;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25);
+  animation: pulseBadge 2.2s infinite ease-in-out;
+}
+
+@keyframes pulseBadge {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 0.88;
+  }
+}
+
+[data-theme="dark"] .nav-badge-danger {
+  background-color: #ef4444 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.45);
+}
+
+[data-theme="dark"] .nav-badge-warning {
+  background-color: #f59e0b !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .nav-badge-primary {
+  background-color: #0284c7 !important;
+  color: #ffffff !important;
+}
+
 .sidebar-footer {
   padding: 12px 14px;
   border-top: 1px solid var(--slate-200);

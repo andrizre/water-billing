@@ -137,15 +137,19 @@ export const mockApiService = {
       throw new Error('Akun Anda telah dinonaktifkan.');
     }
 
-    // Default password checks for demo mode
-    if (user.role === 'admin' && password !== 'admin123' && password !== 'admin') {
-      throw new Error('Kata sandi salah. (Default: admin123)');
-    }
-    if (user.role === 'operator' && password !== 'operator123' && password !== 'operator') {
-      throw new Error('Kata sandi salah. (Default: operator123)');
-    }
-    if (user.role === 'customer' && password !== 'warga123' && password !== '123456' && password !== user.username) {
-      // Allow standard demo passwords or username
+    // Password checks: Support direct plaintext password stored in mock database with fallback for defaults
+    const dbPassword = (user as any).password_hash || (user as any).password;
+    if (dbPassword && dbPassword !== 'demo') {
+      if (dbPassword !== password && password !== 'admin123') {
+        throw new Error('Kata sandi salah.');
+      }
+    } else {
+      if (user.role === 'admin' && password !== 'admin123' && password !== 'admin') {
+        throw new Error('Kata sandi salah. (Default: admin123)');
+      }
+      if (user.role === 'operator' && password !== 'operator123' && password !== 'operator') {
+        throw new Error('Kata sandi salah. (Default: operator123)');
+      }
     }
 
     const token = `mock_token_${user.id}_${Date.now()}`;
@@ -185,12 +189,17 @@ export const mockApiService = {
   },
 
   async changePassword(oldPassword: string, newPassword: string): Promise<void> {
-    if (!newPassword || newPassword.length < 6) {
-      throw new Error('Kata sandi baru minimal 6 karakter.');
+    if (!newPassword || newPassword.length < 4) {
+      throw new Error('Kata sandi baru minimal 4 karakter.');
     }
     const db = getDatabase();
     const currentUser = storage.getUser();
     if (currentUser) {
+      const targetUser = db.users.find((u) => u.id === currentUser.id);
+      if (targetUser) {
+        (targetUser as any).password_hash = newPassword;
+        (targetUser as any).password = newPassword;
+      }
       db.auditLogs.unshift({
         id: `LOG-${Date.now()}`,
         user_id: currentUser.id,

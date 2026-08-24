@@ -14,6 +14,8 @@ import { api } from '../../services/api';
 import { SubscriptionRequest, Tariff, SubscriptionRequestStatus } from '../../types';
 import { formatDateTime, formatRupiah } from '../../utils/formatters';
 
+import { notifyDataUpdated } from '../../hooks/useNotificationCounts';
+
 export const CustomerSubscriptionRequestPage: React.FC = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -84,6 +86,7 @@ export const CustomerSubscriptionRequestPage: React.FC = () => {
       setReason('');
       setModalOpen(false);
       fetchCustomerRequests();
+      notifyDataUpdated();
     } catch (err: any) {
       showToast(err.message || 'Gagal mengirim permohonan', 'error');
     } finally {

@@ -18,6 +18,7 @@ import { PaymentReceiptModal } from '../../components/print/PaymentReceiptPrint'
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useSettings } from '../../context/SettingsContext';
+import { notifyDataUpdated } from '../../hooks/useNotificationCounts';
 import { api } from '../../services/api';
 import { Bill, Payment, PaymentMethod } from '../../types';
 import { formatRupiah, formatM3, formatPeriod } from '../../utils/formatters';
@@ -128,6 +129,7 @@ export const PaymentEntryPage: React.FC = () => {
 
       setSelectedBill(null);
       fetchUnpaidBills();
+      notifyDataUpdated();
     } catch (err: any) {
       toastError(err.message || 'Gagal memproses pembayaran.');
     } finally {

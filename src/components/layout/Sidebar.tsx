@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
+import { useNotificationCounts } from '../../hooks/useNotificationCounts';
 import { DarkModeToggle } from '../common/DarkModeToggle';
 
 export interface SidebarProps {
@@ -34,6 +35,7 @@ export interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const { user, role, logout } = useAuth();
   const { settings } = useSettings();
+  const { counts } = useNotificationCounts();
 
   const handleNavClick = () => {
     if (window.innerWidth <= 1024) {
@@ -76,10 +78,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               <NavLink to="/admin/complaints" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={handleNavClick}>
                 <span className="nav-item-icon"><MessageSquareWarning size={18} /></span>
                 <span>Keluhan Warga</span>
+                {counts.pendingComplaints > 0 && (
+                  <span className="nav-badge nav-badge-danger" title={`${counts.pendingComplaints} keluhan baru menunggu tanggapan`}>
+                    {counts.pendingComplaints}
+                  </span>
+                )}
               </NavLink>
               <NavLink to="/admin/subscription-requests" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={handleNavClick}>
                 <span className="nav-item-icon"><ArrowRightLeft size={18} /></span>
                 <span>Pindah Golongan</span>
+                {counts.pendingSubscriptionRequests > 0 && (
+                  <span className="nav-badge nav-badge-warning" title={`${counts.pendingSubscriptionRequests} pengajuan menunggu persetujuan`}>
+                    {counts.pendingSubscriptionRequests}
+                  </span>
+                )}
               </NavLink>
 
               <div className="nav-section-title">Kelola Air & Warga</div>
@@ -100,6 +112,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               <NavLink to="/admin/bills" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={handleNavClick}>
                 <span className="nav-item-icon"><Receipt size={18} /></span>
                 <span>Tagihan Air</span>
+                {counts.overdueBills > 0 && (
+                  <span className="nav-badge nav-badge-danger" title={`${counts.overdueBills} tagihan telah jatuh tempo`}>
+                    {counts.overdueBills}
+                  </span>
+                )}
               </NavLink>
               <NavLink to="/admin/payments" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={handleNavClick}>
                 <span className="nav-item-icon"><CreditCard size={18} /></span>
@@ -146,6 +163,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               <NavLink to="/operator/readings" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={handleNavClick}>
                 <span className="nav-item-icon"><ClipboardPen size={18} /></span>
                 <span>Pencatatan Meter</span>
+                {counts.unrecordedReadings > 0 && (
+                  <span className="nav-badge nav-badge-warning" title={`${counts.unrecordedReadings} meter pelanggan belum dicatat bulan ini`}>
+                    {counts.unrecordedReadings}
+                  </span>
+                )}
               </NavLink>
               <NavLink to="/operator/bills" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={handleNavClick}>
                 <span className="nav-item-icon"><FileSpreadsheet size={18} /></span>
@@ -168,10 +190,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               <NavLink to="/operator/complaints" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={handleNavClick}>
                 <span className="nav-item-icon"><MessageSquareWarning size={18} /></span>
                 <span>Keluhan Warga</span>
+                {counts.pendingComplaints > 0 && (
+                  <span className="nav-badge nav-badge-danger" title={`${counts.pendingComplaints} keluhan baru menunggu tanggapan`}>
+                    {counts.pendingComplaints}
+                  </span>
+                )}
               </NavLink>
               <NavLink to="/operator/subscription-requests" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={handleNavClick}>
                 <span className="nav-item-icon"><ArrowRightLeft size={18} /></span>
                 <span>Pindah Golongan</span>
+                {counts.pendingSubscriptionRequests > 0 && (
+                  <span className="nav-badge nav-badge-warning" title={`${counts.pendingSubscriptionRequests} pengajuan menunggu proses`}>
+                    {counts.pendingSubscriptionRequests}
+                  </span>
+                )}
               </NavLink>
 
               <div className="nav-section-title">Laporan</div>
@@ -196,6 +228,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               <NavLink to="/customer/bills" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={handleNavClick}>
                 <span className="nav-item-icon"><Receipt size={18} /></span>
                 <span>Tagihan & Tunggakan</span>
+                {counts.unpaidBills > 0 && (
+                  <span className="nav-badge nav-badge-danger" title={`${counts.unpaidBills} tagihan belum dibayar`}>
+                    {counts.unpaidBills}
+                  </span>
+                )}
               </NavLink>
               <NavLink to="/customer/payments" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={handleNavClick}>
                 <span className="nav-item-icon"><CreditCard size={18} /></span>
@@ -206,6 +243,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               <NavLink to="/customer/complaints" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={handleNavClick}>
                 <span className="nav-item-icon"><MessageSquareWarning size={18} /></span>
                 <span>Lapor Keluhan</span>
+                {counts.pendingComplaints > 0 && (
+                  <span className="nav-badge nav-badge-primary" title={`${counts.pendingComplaints} keluhan Anda dalam proses`}>
+                    {counts.pendingComplaints}
+                  </span>
+                )}
               </NavLink>
               <NavLink to="/customer/subscription-request" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={handleNavClick}>
                 <span className="nav-item-icon"><ArrowRightLeft size={18} /></span>

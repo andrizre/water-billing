@@ -14,6 +14,8 @@ import { api } from '../../services/api';
 import { Complaint, ComplaintCategory, ComplaintStatus } from '../../types';
 import { formatDateTime } from '../../utils/formatters';
 
+import { notifyDataUpdated } from '../../hooks/useNotificationCounts';
+
 export const ComplaintsManagementPage: React.FC = () => {
   const { showToast } = useToast();
   const [complaints, setComplaints] = useState<Complaint[]>([]);
@@ -66,6 +68,7 @@ export const ComplaintsManagementPage: React.FC = () => {
       showToast('Status keluhan & catatan tanggapan berhasil disimpan', 'success');
       setModalOpen(false);
       fetchComplaints();
+      notifyDataUpdated();
     } catch (err: any) {
       showToast(err.message || 'Gagal menyimpan tanggapan', 'error');
     } finally {

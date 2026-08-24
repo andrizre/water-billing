@@ -15,6 +15,8 @@ import { api } from '../../services/api';
 import { Complaint, ComplaintCategory, ComplaintStatus } from '../../types';
 import { formatDateTime } from '../../utils/formatters';
 
+import { notifyDataUpdated } from '../../hooks/useNotificationCounts';
+
 export const CustomerComplaintsPage: React.FC = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -69,6 +71,7 @@ export const CustomerComplaintsPage: React.FC = () => {
       setCategory('air_mati');
       setModalOpen(false);
       fetchCustomerComplaints();
+      notifyDataUpdated();
     } catch (err: any) {
       showToast(err.message || 'Gagal mengirim pengaduan', 'error');
     } finally {

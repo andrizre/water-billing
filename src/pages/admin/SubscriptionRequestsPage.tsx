@@ -14,6 +14,8 @@ import { api } from '../../services/api';
 import { SubscriptionRequest, SubscriptionRequestStatus } from '../../types';
 import { formatDateTime } from '../../utils/formatters';
 
+import { notifyDataUpdated } from '../../hooks/useNotificationCounts';
+
 export const SubscriptionRequestsPage: React.FC = () => {
   const { showToast } = useToast();
   const [requests, setRequests] = useState<SubscriptionRequest[]>([]);
@@ -67,6 +69,7 @@ export const SubscriptionRequestsPage: React.FC = () => {
       );
       setModalOpen(false);
       fetchRequests();
+      notifyDataUpdated();
     } catch (err: any) {
       showToast(err.message || 'Gagal memproses pengajuan', 'error');
     } finally {

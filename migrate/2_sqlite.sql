@@ -12,8 +12,8 @@ PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   username TEXT UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL DEFAULT 'demo',
-  salt TEXT NOT NULL DEFAULT 'demo',
+  password_hash TEXT NOT NULL DEFAULT 'admin123',
+  salt TEXT NOT NULL DEFAULT 'plain',
   full_name TEXT NOT NULL,
   role TEXT NOT NULL CHECK(role IN ('admin', 'operator', 'customer')),
   assigned_rt TEXT,

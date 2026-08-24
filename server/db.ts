@@ -355,12 +355,9 @@ function seedInitialData() {
     VALUES (?, ?, ?, ?, ?, ?, ?, 'Aktif', ?, ?)
   `);
 
-  // Admin & Operator Users
-  const adminAuth = hashPassword("admin123");
-  insertUser.run("USR-001", "admin", adminAuth.hash, adminAuth.salt, "Administrator BUMDes", "admin", "admin@sandmosquito.desa.id", "0811111111", now, now);
-
-  const opAuth = hashPassword("operator123");
-  insertUser.run("USR-002", "operator", opAuth.hash, opAuth.salt, "Budi Santoso (Petugas Loket)", "operator", "budi@sandmosquito.desa.id", "0812222222", now, now);
+  // Admin & Operator Users (Stored in plain text for simple direct database management)
+  insertUser.run("USR-001", "admin", "admin123", "plain", "Administrator BUMDes", "admin", "admin@sandmosquito.desa.id", "0811111111", now, now);
+  insertUser.run("USR-002", "operator", "operator123", "plain", "Budi Santoso (Petugas Loket RT 01)", "operator", "budi@sandmosquito.desa.id", "0812222222", now, now);
 
   // Customers Data
   const customersData = [
@@ -374,9 +371,7 @@ function seedInitialData() {
   for (let i = 0; i < customersData.length; i++) {
     const c = customersData[i];
     const userId = `USR-CUST-00${i + 1}`;
-    const custAuth = hashPassword("warga123");
-
-    insertUser.run(userId, c.no, custAuth.hash, custAuth.salt, c.name, "customer", "", c.phone, now, now);
+    insertUser.run(userId, c.no, "warga123", "plain", c.name, "customer", "", c.phone, now, now);
     insertCustomer.run(c.id, c.no, userId, c.name, c.nik, c.phone, c.addr, c.rtrw, c.meter, c.tariff, now, now);
     insertMeter.run(`MTR-ID-00${i + 1}`, c.meter, c.id, 'Onda SNI 1/2"', "2025-01-10", 0, c.reading, now, now);
   }

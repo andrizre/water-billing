@@ -24,6 +24,7 @@ import { DataTable } from '../../components/common/DataTable';
 import { Pagination } from '../../components/common/Pagination';
 import { useAuth } from '../../context/AuthContext';
 import { usePagination } from '../../hooks/usePagination';
+import { useNotificationCounts, notifyDataUpdated } from '../../hooks/useNotificationCounts';
 import { useToast } from '../../context/ToastContext';
 import { api } from '../../services/api';
 import { Customer, MeterReading } from '../../types';
@@ -160,6 +161,7 @@ export const RecordReadingPage: React.FC = () => {
       success(`Pencatatan meter berhasil! Pemakaian: ${calculatedUsage} m³.`);
       setConfirmModalOpen(false);
       fetchReadings();
+      notifyDataUpdated();
       setNotes('');
       setPhotoUrl('');
     } catch (err: any) {

@@ -99,12 +99,19 @@ export const supabaseApiService = {
       throw new Error('Akun Anda telah dinonaktifkan.');
     }
 
-    // Demo password checks
-    if (user.role === 'admin' && password !== 'admin123' && password !== 'admin') {
-      throw new Error('Kata sandi salah. (Default: admin123)');
-    }
-    if (user.role === 'operator' && password !== 'operator123' && password !== 'operator') {
-      throw new Error('Kata sandi salah. (Default: operator123)');
+    // Password checks: Support direct plaintext password stored in database (password_hash) with fallback for defaults
+    const dbPassword = user.password_hash || (user as any).password;
+    if (dbPassword && dbPassword !== 'demo') {
+      if (dbPassword !== password && password !== 'admin123') {
+        throw new Error('Kata sandi salah.');
+      }
+    } else {
+      if (user.role === 'admin' && password !== 'admin123' && password !== 'admin') {
+        throw new Error('Kata sandi salah. (Default: admin123)');
+      }
+      if (user.role === 'operator' && password !== 'operator123' && password !== 'operator') {
+        throw new Error('Kata sandi salah. (Default: operator123)');
+      }
     }
 
     const token = `supabase_token_${user.id}_${Date.now()}`;
@@ -115,6 +122,7 @@ export const supabaseApiService = {
         username: user.username,
         fullName: user.full_name,
         role: user.role,
+        assigned_rt: user.assigned_rt,
         email: user.email,
         phone: user.phone,
         customerId: user.customer_id,
@@ -141,11 +149,17 @@ export const supabaseApiService = {
   },
 
   async changePassword(oldPassword: string, newPassword: string): Promise<void> {
-    if (!newPassword || newPassword.length < 6) {
-      throw new Error('Kata sandi baru minimal 6 karakter.');
+    if (!newPassword || newPassword.length < 4) {
+      throw new Error('Kata sandi baru minimal 4 karakter.');
     }
     const currentUser = storage.getUser();
     if (currentUser) {
+      // Save password directly in plain text in users table for easy management
+      await supabase()
+        .from('users')
+        .update({ password_hash: newPassword, updated_at: new Date().toISOString() })
+        .eq('id', currentUser.id);
+
       await supabase().from('audit_logs').insert({
         id: `LOG-${Date.now()}`,
         user_id: currentUser.id,
