@@ -24,6 +24,7 @@ import { Modal } from '../../components/common/Modal';
 import { DataTable } from '../../components/common/DataTable';
 import { Pagination } from '../../components/common/Pagination';
 import { BillInvoiceModal } from '../../components/print/BillInvoicePrint';
+import { MassBillPrintModal } from '../../components/print/MassBillPrintModal';
 import { useDebounce } from '../../hooks/useDebounce';
 import { usePagination } from '../../hooks/usePagination';
 import { useToast } from '../../context/ToastContext';
@@ -462,68 +463,15 @@ export const BillManagement: React.FC = () => {
         bill={selectedBill}
       />
 
-      {/* Mass Print Modal for Whole RT / Active Batch */}
-      <Modal
+      {/* Advanced Mass Print Modal (2-Up Invoices & Master Ledger Table) */}
+      <MassBillPrintModal
         isOpen={massPrintModalOpen}
         onClose={() => setMassPrintModalOpen(false)}
-        size="lg"
-        title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Printer size={20} color="var(--primary-600)" />
-            <span>Cetak Massal Faktur Tagihan ({bills.length} Faktur)</span>
-          </div>
-        }
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setMassPrintModalOpen(false)}>
-              Tutup
-            </Button>
-            <Button variant="primary" icon={<Printer size={16} />} onClick={() => window.print()}>
-              Print Semua Faktur ({bills.length})
-            </Button>
-          </>
-        }
-      >
-        <div className="printable-area" style={{ maxHeight: 500, overflowY: 'auto', padding: 8 }}>
-          <p style={{ fontSize: 13, color: 'var(--slate-600)', marginBottom: 16 }}>
-            Berikut pratinjau seluruh lembar tagihan rekening air untuk wilayah <strong>{rtFilter || 'Semua Wilayah'}</strong> ({formatPeriod(Number(monthFilter || '8'), Number(yearFilter || '2026'))}).
-          </p>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {bills.map((b, idx) => (
-              <div
-                key={b.id}
-                style={{
-                  border: '1px solid var(--slate-300)',
-                  borderRadius: 8,
-                  padding: 12,
-                  backgroundColor: 'var(--slate-50)',
-                  pageBreakInside: 'avoid'
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--slate-200)', paddingBottom: 6, marginBottom: 8, fontSize: 12 }}>
-                  <div>
-                    <strong>{settings.organization_name || 'BUMDes Tirta Sandmosquito'}</strong> • {b.bill_no}
-                  </div>
-                  <Badge status={b.status} />
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                  <div>
-                    <div style={{ fontWeight: 800 }}>{b.customer_name} ({b.customer_no})</div>
-                    <div style={{ fontSize: 11, color: 'var(--slate-500)' }}>Wilayah: {b.rt_rw} | Periode: {formatPeriod(b.period_month, b.period_year)}</div>
-                    <div style={{ fontSize: 11, color: 'var(--slate-500)' }}>Meter: {b.prev_reading} → {b.current_reading} m³ ({formatM3(b.usage_m3)})</div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 11, color: 'var(--slate-500)' }}>Total Tagihan:</div>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--primary-700)' }}>{formatRupiah(b.total_amount)}</div>
-                    <div style={{ fontSize: 11, color: 'var(--slate-500)' }}>Tempo: {formatDate(b.due_date)}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Modal>
+        bills={bills}
+        selectedMonth={monthFilter}
+        selectedYear={yearFilter}
+        selectedRt={rtFilter}
+      />
     </div>
   );
 };

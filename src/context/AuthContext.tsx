@@ -24,15 +24,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Initialize session on mount
   useEffect(() => {
     const initAuth = async () => {
-      const savedToken = storage.getToken();
-      const savedUser = storage.getUser();
+      try {
+        const savedToken = storage.getToken();
+        const savedUser = storage.getUser();
 
-      if (savedToken && savedUser) {
-        setUser(savedUser);
-      } else {
+        if (savedToken && savedUser && savedUser.id && savedUser.role) {
+          setUser(savedUser);
+        } else {
+          if (savedToken && !savedUser) {
+            storage.removeToken();
+          }
+          setUser(null);
+        }
+      } catch (e) {
+        console.error('Error restoring auth session:', e);
         setUser(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     initAuth();

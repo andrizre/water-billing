@@ -1,0 +1,275 @@
+/* ==========================================================================
+   SANDMOSQUITO WATER BILLING - COMPREHENSIVE PRINT SYSTEM STYLESHEET
+   Optimized for High-Volume Printing (100+ Records, Continuous A4 & POS 58mm)
+   ========================================================================== */
+
+@media print {
+  /* 1. Universal Page & Color Reset */
+  @page {
+    size: A4 portrait;
+    margin: 12mm 10mm 15mm 10mm;
+  }
+
+  *, *::before, *::after {
+    background: transparent !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    filter: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  html, body {
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    font-size: 10.5pt !important;
+    line-height: 1.35 !important;
+    overflow: visible !important;
+  }
+
+  /* 2. Hide Non-Printable UI Elements */
+  .sidebar,
+  .sidebar-overlay,
+  .topbar,
+  .btn,
+  button,
+  .no-print,
+  .page-header-actions,
+  .pagination-container,
+  .toast-container,
+  .tabs-header,
+  .badge-action,
+  .dark-mode-toggle,
+  .input-wrapper,
+  .select-wrapper,
+  .filter-box,
+  .empty-action-btn,
+  .app-toast,
+  .modal-close-btn,
+  .modal-footer {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* 3. Modal Unwrapping for Clean Full-Page Multipage Printing */
+  .modal-overlay {
+    position: static !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    display: block !important;
+    z-index: auto !important;
+  }
+
+  .modal-content {
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+  }
+
+  .modal-body {
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  .main-content, .page-wrapper {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+
+  /* 4. Table Optimization for Hundreds of Data Rows */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin-bottom: 12px !important;
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+  }
+
+  thead {
+    display: table-header-group !important; /* Repeats table header across every page break */
+  }
+
+  tfoot {
+    display: table-footer-group !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: auto !important;
+    break-after: auto !important;
+  }
+
+  th, td {
+    border: 1px solid #94a3b8 !important;
+    padding: 5px 8px !important;
+    font-size: 9.5pt !important;
+    color: #000000 !important;
+    text-align: left;
+  }
+
+  th {
+    background-color: #f1f5f9 !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    font-size: 8.5pt !important;
+    letter-spacing: 0.3px !important;
+  }
+
+  /* 5. Page Breaks & Layout Control */
+  .print-page-break {
+    page-break-after: always !important;
+    break-after: page !important;
+    height: 0 !important;
+  }
+
+  .print-avoid-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .print-only {
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  .print-perforated-cut {
+    border-bottom: 2px dashed #64748b !important;
+    padding-bottom: 14px !important;
+    margin-bottom: 16px !important;
+    position: relative;
+  }
+
+  .print-perforated-cut::after {
+    content: "✂ ------------------- Gunting / Robek di Sini ------------------- ✂";
+    display: block;
+    text-align: center;
+    font-size: 8pt;
+    color: #64748b !important;
+    margin-top: 10px;
+    letter-spacing: 1px;
+  }
+
+  /* 2-Up Invoices on single A4 sheet */
+  .print-bill-card-2up {
+    border: 1px solid #94a3b8 !important;
+    border-radius: 4px !important;
+    padding: 12px !important;
+    margin-bottom: 14px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    background: #ffffff !important;
+  }
+
+  /* 6. Official BUMDes Print Header (Kop Surat Desa) */
+  .official-print-header {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 3px double #000000 !important;
+    padding-bottom: 10px !important;
+    margin-bottom: 16px !important;
+  }
+
+  .official-print-header h1,
+  .official-print-header h2 {
+    margin: 0;
+    color: #000000 !important;
+    font-weight: 800 !important;
+    font-size: 15pt !important;
+  }
+
+  .official-print-header p {
+    margin: 2px 0;
+    font-size: 9.5pt !important;
+    color: #334155 !important;
+  }
+
+  /* 7. Official Signatures Block */
+  .official-print-signatures {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-end !important;
+    margin-top: 28px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    font-size: 10pt !important;
+  }
+
+  .sig-col {
+    text-align: center !important;
+    width: 30% !important;
+  }
+
+  .sig-space {
+    height: 52px !important;
+  }
+
+  .sig-name {
+    font-weight: 800 !important;
+    text-decoration: underline !important;
+  }
+
+  .sig-title {
+    font-size: 9pt !important;
+    color: #475569 !important;
+  }
+
+  /* 8. Thermal POS Receipt 58mm / 80mm Mode */
+  .thermal-receipt-mode {
+    width: 58mm !important;
+    max-width: 58mm !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    font-family: 'Courier New', Courier, monospace !important;
+    font-size: 9pt !important;
+    line-height: 1.25 !important;
+  }
+
+  .thermal-receipt-mode * {
+    font-family: 'Courier New', Courier, monospace !important;
+    color: #000000 !important;
+  }
+
+  .thermal-receipt-mode table th,
+  .thermal-receipt-mode table td {
+    border: none !important;
+    padding: 2px 0 !important;
+    font-size: 8.5pt !important;
+  }
+}
+
+/* Screen Only Helper */
+@media screen {
+  .print-only {
+    display: none !important;
+  }
+}

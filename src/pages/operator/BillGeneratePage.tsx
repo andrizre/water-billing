@@ -15,6 +15,7 @@ import { Badge } from '../../components/common/Badge';
 import { DataTable } from '../../components/common/DataTable';
 import { Pagination } from '../../components/common/Pagination';
 import { BillInvoiceModal } from '../../components/print/BillInvoicePrint';
+import { MassBillPrintModal } from '../../components/print/MassBillPrintModal';
 import { useAuth } from '../../context/AuthContext';
 import { usePagination } from '../../hooks/usePagination';
 import { useToast } from '../../context/ToastContext';
@@ -32,6 +33,7 @@ export const BillGeneratePage: React.FC = () => {
 
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
   const [invoiceModalOpen, setInvoiceModalOpen] = useState<boolean>(false);
+  const [massPrintModalOpen, setMassPrintModalOpen] = useState<boolean>(false);
 
   const { success, error: toastError } = useToast();
 
@@ -88,11 +90,11 @@ export const BillGeneratePage: React.FC = () => {
       )
     },
     {
-      header: 'Volume Air',
+      header: 'Pemakaian',
       render: (b: Bill) => (
         <div>
-          <span style={{ fontWeight: 700 }}>{formatM3(b.usage_m3)}</span>
-          <div style={{ fontSize: 11, color: 'var(--slate-500)' }}>{b.prev_reading} → {b.current_reading} m³</div>
+          <div>{b.prev_reading} → {b.current_reading} m³</div>
+          <div style={{ fontWeight: 700, color: 'var(--primary-700)' }}>{formatM3(b.usage_m3)}</div>
         </div>
       )
     },
@@ -100,17 +102,10 @@ export const BillGeneratePage: React.FC = () => {
       header: 'Total Tagihan',
       render: (b: Bill) => (
         <div>
-          {b.is_subsidized && b.original_amount && b.original_amount > b.total_amount && (
-            <div style={{ fontSize: 11, color: 'var(--slate-400)', textDecoration: 'line-through' }}>
-              {formatRupiah(b.original_amount)}
-            </div>
-          )}
-          <span style={{ fontWeight: 800, color: b.total_amount === 0 ? 'var(--success-700)' : 'var(--slate-900)', fontSize: 14 }}>
-            {b.total_amount === 0 ? 'Gratis (Rp 0)' : formatRupiah(b.total_amount)}
-          </span>
-          {b.is_subsidized && (
-            <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--success-700)' }}>
-              {b.subsidy_type === 'gratis' ? '★ Subsidi 100%' : `★ Subsidi: -${formatRupiah(b.subsidy_amount || 0)}`}
+          <div style={{ fontWeight: 800, fontSize: 14 }}>{formatRupiah(b.total_amount)}</div>
+          {Number(b.subsidy_amount || 0) > 0 && (
+            <div style={{ fontSize: 10.5, color: 'var(--success-700)', fontWeight: 600 }}>
+              (Subsidi: -{formatRupiah(b.subsidy_amount)})
             </div>
           )}
         </div>
@@ -126,18 +121,17 @@ export const BillGeneratePage: React.FC = () => {
     },
     {
       header: 'Aksi',
-      align: 'right' as const,
       render: (b: Bill) => (
         <Button
           size="sm"
           variant="secondary"
-          icon={<Printer size={13} />}
+          icon={<Printer size={14} />}
           onClick={() => {
             setSelectedBill(b);
             setInvoiceModalOpen(true);
           }}
         >
-          Cetak Faktur
+          Cetak
         </Button>
       )
     }
@@ -146,31 +140,23 @@ export const BillGeneratePage: React.FC = () => {
   return (
     <div>
       <PageHeader
-        title="Pembuatan & Generate Tagihan Air"
-        subtitle="Pembuatan faktur rekening air bulanan berdasarkan angka pencatatan meter yang telah terinput."
+        title="Generate & Terbitkan Tagihan Bulanan"
+        subtitle={`Kalkulasi massal otomatis tagihan pemakaian air warga berdasarkan data stand meteran ${user?.assigned_rt ? `(${user.assigned_rt})` : ''}.`}
         action={
-          user?.assigned_rt && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, backgroundColor: 'var(--primary-50)', border: '1px solid var(--primary-200)', padding: '6px 12px', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 700, color: 'var(--primary-700)' }}>
-              <span>Wilayah Tugas:</span>
-              <span style={{ backgroundColor: 'var(--primary-600)', color: '#fff', padding: '2px 8px', borderRadius: 4, fontSize: 12 }}>
-                {user.assigned_rt}
-              </span>
-            </div>
+          bills.length > 0 && (
+            <Button
+              variant="secondary"
+              icon={<Printer size={16} />}
+              onClick={() => setMassPrintModalOpen(true)}
+            >
+              Cetak Massal ({bills.length} Faktur)
+            </Button>
           )
         }
       />
 
       {/* Generator Control Card */}
-      <Card
-        title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Sparkles size={18} color="var(--primary-600)" />
-            <span>Generate Tagihan Massal Per Periode</span>
-          </div>
-        }
-        subtitle="Sistem akan memeriksa semua pelanggan yang telah memiliki angka meter dan belum memiliki faktur tagihan"
-        style={{ marginBottom: 24 }}
-      >
+      <Card title="Pilih Periode Generate Tagihan">
         <form onSubmit={handleGenerateBatch}>
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 14 }}>
             <div style={{ width: 160 }}>
@@ -210,7 +196,21 @@ export const BillGeneratePage: React.FC = () => {
       </Card>
 
       {/* Result Bills Table */}
-      <Card title={`Daftar Tagihan Periode ${formatPeriod(batchMonth, batchYear)} (${bills.length} Tagihan)`}>
+      <Card 
+        title={`Daftar Tagihan Periode ${formatPeriod(batchMonth, batchYear)} (${bills.length} Tagihan)`}
+        action={
+          bills.length > 0 && (
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<Printer size={14} />}
+              onClick={() => setMassPrintModalOpen(true)}
+            >
+              Cetak Massal
+            </Button>
+          )
+        }
+      >
         <DataTable
           columns={columns}
           data={pagination.paginatedItems}
@@ -231,6 +231,15 @@ export const BillGeneratePage: React.FC = () => {
         isOpen={invoiceModalOpen}
         onClose={() => setInvoiceModalOpen(false)}
         bill={selectedBill}
+      />
+      
+      <MassBillPrintModal
+        isOpen={massPrintModalOpen}
+        onClose={() => setMassPrintModalOpen(false)}
+        bills={bills}
+        selectedMonth={batchMonth}
+        selectedYear={batchYear}
+        selectedRt={user?.assigned_rt || ''}
       />
     </div>
   );

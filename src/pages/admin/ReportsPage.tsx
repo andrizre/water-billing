@@ -10,7 +10,8 @@ import {
   Calendar,
   Filter,
   Wrench,
-  DollarSign
+  DollarSign,
+  Droplets
 } from 'lucide-react';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Card } from '../../components/common/Card';
@@ -162,25 +163,26 @@ export const ReportsPage: React.FC = () => {
         <Tabs tabs={tabs} activeTab={activeTab} onChange={(t) => setActiveTab(t)} />
       </div>
 
-      {/* Printable Report Header for Official Export */}
-      <div
-        className="printable-header"
-        style={{
-          display: 'none',
-          textAlign: 'center',
-          borderBottom: '2px solid #000',
-          paddingBottom: 14,
-          marginBottom: 20
-        }}
-      >
-        <h2 style={{ fontSize: 18, fontWeight: 800 }}>{settings.organization_name}</h2>
-        <p style={{ fontSize: 13 }}>{settings.village_name} - {settings.village_address}</p>
-        <h3 style={{ fontSize: 15, fontWeight: 700, marginTop: 10, textTransform: 'uppercase' }}>
-          {activeTab === 'billing' && `LAPORAN REKAPITULASI TAGIHAN AIR (${formatPeriod(periodMonth, periodYear)})`}
-          {activeTab === 'payment' && 'LAPORAN REKAPITULASI PENERIMAAN KAS PEMBAYARAN'}
-          {activeTab === 'arrears' && 'LAPORAN DAFTAR TUNGGAKAN & PIUTANG PELANGGAN'}
-          {activeTab === 'usage' && `LAPORAN VOLUME KONSUMSI AIR MINUM (${formatPeriod(periodMonth, periodYear)})`}
-        </h3>
+      {/* Official BUMDes Print Header (Kop Surat Desa) - Only visible when printing */}
+      <div className="official-print-header print-only">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Droplets size={32} color="#0284c7" />
+          <div>
+            <h1>{settings.organization_name || 'BUMDes Tirta Sandmosquito'}</h1>
+            <p>{settings.village_name} - {settings.village_address} | Telp: {settings.contact_phone}</p>
+            <p style={{ fontWeight: 800, color: '#0284c7', fontSize: '12pt', marginTop: 4, textTransform: 'uppercase' }}>
+              {activeTab === 'billing' && `LAPORAN REKAPITULASI TAGIHAN AIR (${formatPeriod(Number(periodMonth), Number(periodYear))})`}
+              {activeTab === 'payment' && 'LAPORAN REKAPITULASI PENERIMAAN KAS PEMBAYARAN AIR'}
+              {activeTab === 'arrears' && 'LAPORAN DAFTAR TUNGGAKAN & PIUTANG PELANGGAN'}
+              {activeTab === 'usage' && `LAPORAN REKAPITULASI VOLUME KONSUMSI AIR (${formatPeriod(Number(periodMonth), Number(periodYear))})`}
+              {activeTab === 'profit_loss' && 'LAPORAN NERACA LABA-RUGI & BIAYA PEMELIHARAAN AIR'}
+            </p>
+          </div>
+        </div>
+        <div style={{ textAlign: 'right', fontSize: '9.5pt' }}>
+          <div>Dicetak: {formatDate(new Date().toISOString())}</div>
+          <div>Unit: Pengelola Air Bersih</div>
+        </div>
       </div>
 
       {/* Filters (No-print) */}
@@ -371,6 +373,28 @@ export const ReportsPage: React.FC = () => {
           />
         )}
       </Card>
+
+      {/* Official Signatures Block - Only visible on print */}
+      <div className="official-print-signatures print-only">
+        <div className="sig-col">
+          <div>Mengetahui,</div>
+          <div className="sig-title">Kepala Desa {settings.village_name || ''}</div>
+          <div className="sig-space" />
+          <div className="sig-name">( ________________________ )</div>
+        </div>
+        <div className="sig-col">
+          <div>Penanggung Jawab,</div>
+          <div className="sig-title">Direktur {settings.organization_name || 'BUMDes'}</div>
+          <div className="sig-space" />
+          <div className="sig-name">( ________________________ )</div>
+        </div>
+        <div className="sig-col">
+          <div>Dibuat Oleh,</div>
+          <div className="sig-title">Bendahara / Petugas Administrasi</div>
+          <div className="sig-space" />
+          <div className="sig-name">( ________________________ )</div>
+        </div>
+      </div>
     </div>
   );
 };

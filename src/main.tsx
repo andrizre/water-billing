@@ -7,6 +7,7 @@ import { ToastProvider } from './context/ToastContext';
 import { SettingsProvider } from './context/SettingsContext';
 import './styles/global.css';
 import './styles/components.css';
+import './styles/print.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

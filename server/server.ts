@@ -922,6 +922,23 @@ const server = Bun.serve({
       return new Response(JSON.stringify(stats), { headers: corsHeaders });
     }
 
+    // Static Asset & SPA Fallback for GET requests (prevents 404 on refresh)
+    if (req.method === "GET" && !url.pathname.startsWith("/api") && !url.searchParams.has("action")) {
+      const reqPath = url.pathname === "/" ? "/index.html" : url.pathname;
+      const targetFile = Bun.file(`dist${reqPath}`);
+      if (await targetFile.exists()) {
+        return new Response(targetFile);
+      }
+
+      // If route is an SPA subroute (e.g., /admin/dashboard, /customer/bills, /login), serve index.html
+      const spaIndex = Bun.file("dist/index.html");
+      if (await spaIndex.exists()) {
+        return new Response(spaIndex, {
+          headers: { "Content-Type": "text/html; charset=utf-8" }
+        });
+      }
+    }
+
     try {
       let body: any = {};
       if (req.method === "POST") {
