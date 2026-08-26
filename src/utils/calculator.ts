@@ -21,10 +21,12 @@ export function calculateTieredBillBreakdown(
   const baseFee = Number(tariff?.base_fee ?? 5000);
   const adminFeeVal = Math.max(0, Number(adminFee || 0));
 
-  const tier1Max = Number(tariff?.tier1_max ?? 10);
+  // Tier boundaries are sanitized so a misconfigured tariff can never
+  // produce negative band capacity or negative amounts.
+  const tier1Max = Math.max(0, Number(tariff?.tier1_max ?? 10));
   const tier1Rate = Number(tariff?.tier1_rate ?? 2000);
 
-  const tier2Max = Number(tariff?.tier2_max ?? 20);
+  const tier2Max = Math.max(tier1Max, Number(tariff?.tier2_max ?? 20));
   const tier2Rate = Number(tariff?.tier2_rate ?? 3000);
 
   const tier3Rate = Number(tariff?.tier3_rate ?? 5000);
@@ -44,7 +46,7 @@ export function calculateTieredBillBreakdown(
     tier3Usage = 0;
   } else {
     tier1Usage = tier1Max;
-    tier2Usage = tier2Max - tier1Max;
+    tier2Usage = Math.max(0, tier2Max - tier1Max);
     tier3Usage = usage - tier2Max;
   }
 

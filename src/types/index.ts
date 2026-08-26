@@ -14,6 +14,8 @@ export interface User {
   assigned_rt?: string;
   is_active: boolean;
   customer_id?: string;
+  /** Credential secret. Mock/legacy rows may hold plain text; Supabase rows store sha256 hex. */
+  password_hash?: string;
   created_at?: string;
   updated_at?: string;
 }

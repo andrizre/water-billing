@@ -17,7 +17,7 @@
    - [Langkah 7: Layanan Pengaduan & Notifikasi Sidebar Real-Time](#langkah-7-layanan-pengaduan--notifikasi-sidebar-real-time)
    - [Langkah 8: Pencatatan Biaya Pemeliharaan & Operasional](#langkah-8-pencatatan-biaya-pemeliharaan--operasional)
    - [Langkah 9: Laporan Keuangan, Neraca Laba-Rugi, & Ekspor CSV](#langkah-9-laporan-keuangan-neraca-laba-rugi--ekspor-csv)
-3. [🔐 Pengelolaan Kata Sandi Admin (Plain Text di Database)](#-pengelolaan-kata-sandi-admin-plain-text-di-database)
+3. [🔐 Pengelolaan Kata Sandi (Hash di Database)](#-pengelolaan-kata-sandi-hash-di-database)
 4. [👥 Hak Akses Role & Akun Demo Pengujian](#-hak-akses-role--akun-demo-pengujian)
 5. [💾 4 Mode Database Backend yang Didukung](#-4-mode-database-backend-yang-didukung)
 6. [📁 Skrip Migrasi 14 Tabel Database (`migrate/`)](#-skrip-migrasi-14-tabel-database-migrate)
@@ -140,16 +140,22 @@ flowchart TD
 
 ---
 
-## 🔐 Pengelolaan Kata Sandi Admin (Plain Text di Database)
+## 🔐 Pengelolaan Kata Sandi (Hash di Database)
 
-Untuk kemudahan pengelola BUMDes di lapangan, kata sandi akun **disimpan dalam bentuk teks biasa (plain text)** pada kolom `password_hash` tabel `users`.
+Kata sandi **tidak lagi disimpan sebagai teks biasa**:
+
+- **SQLite (server lokal)** — semua kata sandi disimpan sebagai hash **PBKDF2-SHA256 + salt acak** (`server/db.ts: hashPassword`). Baris lama yang masih plain text tetap bisa login (kompatibilitas), dan otomatis terganti hash saat pengguna mengubah sandinya.
+- **Supabase** — kata sandi disimpan sebagai hex **SHA-256**; setiap penulisan ulang (daftar, ganti sandi, reset) menyimpan hash, bukan teks.
+- **Tidak ada kata sandi master/backdoor.** Login hanya cocok dengan nilai tersimpan; kegagalan login dicatat di audit log dan akun sementara terkunci setelah 8× gagal (rate limit server SQLite).
 
 > [!TIP]
 > **Jika Anda lupa kata sandi Administrator:**
-> 1. Buka database Anda (Table Editor Supabase, SQLite DB Browser, atau tab Google Sheets).
-> 2. Buka tabel `users`, cari baris dengan `username = 'admin'`.
-> 3. Langsung ubah nilai pada kolom `password_hash` menjadi kata sandi baru (misal: `kuncidesa2026`).
-> 4. Anda dapat langsung login kembali menggunakan kata sandi tersebut tanpa perlu enkripsi/hashing.
+> 1. Jalankan `npm run server`, login sebagai operator, atau langsung:
+> 2. Buka database Anda (Table Editor Supabase / SQLite DB Browser).
+> 3. Ganti kolom `password_hash` pada baris `username = 'admin'` dengan **hash baru**, atau gunakan menu *Kelola Operator → Reset Sandi* dari akun admin lain.
+> 4. Untuk SQLite, cara paling mudah: hapus file `sandmosquito.db*` lalu restart server — database demo akan dibuat ulang dengan kredensial default.
+
+**Catatan keamanan Supabase:** karena autentikasi berjalan di browser memakai anon key, RLS tidak dapat membedakan peran pengguna. Untuk produksi, pindahkan verifikasi kredensial & mutasi sensitif ke Edge Functions (`service_role`) atau migrasi ke Supabase Auth — lihat `migrate/1b_supabase_hardening.sql`.
 
 ---
 

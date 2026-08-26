@@ -37,6 +37,7 @@ export const Select: React.FC<SelectProps> = ({
       )}
       <select
         id={selectId}
+        required={required}
         className={`form-control ${error ? 'border-danger' : ''} ${className}`.trim()}
         {...props}
       >

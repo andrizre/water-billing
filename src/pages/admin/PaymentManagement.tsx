@@ -24,7 +24,7 @@ import { useToast } from '../../context/ToastContext';
 import { api } from '../../services/api';
 import { exportToCsv } from '../../utils/exportCsv';
 import { Payment, Bill, PaymentMethod } from '../../types';
-import { formatRupiah, formatDateTime, formatPeriod } from '../../utils/formatters';
+import { formatRupiah, formatDateTime, formatPeriod, todayLocalISO } from '../../utils/formatters';
 
 export const PaymentManagement: React.FC = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -45,7 +45,7 @@ export const PaymentManagement: React.FC = () => {
     amount_paid: '',
     payment_method: 'Tunai' as PaymentMethod,
     notes: '',
-    payment_date: new Date().toISOString().substring(0, 10)
+    payment_date: todayLocalISO()
   });
 
   const debouncedSearch = useDebounce(search, 300);
@@ -92,7 +92,7 @@ export const PaymentManagement: React.FC = () => {
       amount_paid: firstBill ? String(firstBill.balance_due || firstBill.total_amount) : '',
       payment_method: 'Tunai',
       notes: '',
-      payment_date: new Date().toISOString().substring(0, 10)
+      payment_date: todayLocalISO()
     });
     setCreateModalOpen(true);
   };

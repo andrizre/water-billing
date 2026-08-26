@@ -159,9 +159,12 @@ export const CustomerManagement: React.FC = () => {
     setSaving(true);
     try {
       if (editingCustomer) {
+        // initial_reading is a meter-only concept; sending it would be rejected
+        // by backends with strict schemas.
+        const { initial_reading: _ignored, ...customerFields } = formData;
         await api.updateCustomer({
           id: editingCustomer.id,
-          ...formData,
+          ...customerFields,
           subsidy_max_amount: Number(formData.subsidy_max_amount || 0)
         });
         success('Data pelanggan berhasil diperbarui.');

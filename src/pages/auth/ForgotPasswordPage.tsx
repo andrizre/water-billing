@@ -14,22 +14,19 @@ export const ForgotPasswordPage: React.FC = () => {
   const { settings } = useSettings();
   const { success, error: toastError } = useToast();
 
-  // Step state: 1 = Input Admin Reset Token, 2 = Verify Identity, 3 = Set New Password
+  // Step state: 1 = Input Admin Reset Token, 2 = Identity + New Password, 3 = Done
+  // Identity verification happens SERVER-SIDE inside a single forgotResetPassword
+  // call — the browser never reads other residents' NIK/user data.
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [loading, setLoading] = useState(false);
 
   // Step 1: Admin Token
   const [tokenStr, setTokenStr] = useState('');
-  const [verifiedToken, setVerifiedToken] = useState<any>(null);
 
-  // Step 2: Account identification & security questions
+  // Step 2: Account identification, security answers, and the new password
   const [identifier, setIdentifier] = useState('');
-  const [foundCustomer, setFoundCustomer] = useState<any>(null);
-  const [foundUser, setFoundUser] = useState<any>(null);
   const [nikLast4, setNikLast4] = useState('');
   const [rtRwAnswer, setRtRwAnswer] = useState('');
-
-  // Step 3: Password Reset
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -50,8 +47,7 @@ export const ForgotPasswordPage: React.FC = () => {
 
     try {
       setLoading(true);
-      const res = await api.verifyRegistrationToken(tokenStr, 'password_reset');
-      setVerifiedToken(res.token);
+      await api.verifyRegistrationToken(tokenStr, 'password_reset');
       setStep(2);
       success('Token konfirmasi reset password valid! Silakan lengkapi data verifikasi akun Anda.');
     } catch (err: any) {
@@ -61,70 +57,13 @@ export const ForgotPasswordPage: React.FC = () => {
     }
   };
 
-  // 2. Identify Account & Verify Security Questions
-  const handleVerifyIdentity = async (e: React.FormEvent) => {
+  // 2. Submit identity proof + new password — validated entirely by the backend
+  const handleResetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!identifier.trim() || !nikLast4.trim() || !rtRwAnswer.trim()) {
       toastError('Semua kolom data verifikasi wajib diisi.');
       return;
     }
-
-    try {
-      setLoading(true);
-      const clean = identifier.trim().toLowerCase();
-
-      // Search in customers
-      const customers = await api.getCustomers({ search: clean });
-      const targetCustomer = customers.find(
-        (c: any) =>
-          c.customer_no.toLowerCase() === clean ||
-          (c.phone && c.phone.includes(clean)) ||
-          c.full_name.toLowerCase().includes(clean)
-      );
-
-      if (!targetCustomer) {
-        toastError('Akun pelanggan dengan identitas tersebut tidak ditemukan.');
-        return;
-      }
-
-      // Verify NIK & RT/RW
-      const actualNik = targetCustomer.nik || '';
-      const actualRtRw = (targetCustomer.rt_rw || '').toLowerCase().replace(/\s+/g, '');
-      const cleanRtRwInput = rtRwAnswer.toLowerCase().replace(/\s+/g, '');
-
-      let isVerified = false;
-      if (actualNik && actualNik.length >= 4) {
-        if (nikLast4.trim() === actualNik.slice(-4)) {
-          isVerified = true;
-        }
-      }
-
-      if (actualRtRw && cleanRtRwInput && (actualRtRw.includes(cleanRtRwInput) || cleanRtRwInput.includes(actualRtRw))) {
-        isVerified = true;
-      }
-
-      // Demo bypass for test NIK
-      if (nikLast4 === '0001' || nikLast4 === '0002' || nikLast4 === '1234' || isVerified) {
-        setFoundCustomer(targetCustomer);
-        setFoundUser({
-          username: targetCustomer.customer_no.toLowerCase(),
-          fullName: targetCustomer.full_name,
-        });
-        setStep(3);
-        success('Verifikasi identitas berhasil! Silakan tentukan kata sandi baru.');
-      } else {
-        toastError('Jawaban verifikasi NIK atau RT/RW tidak cocok dengan data terdaftar.');
-      }
-    } catch (err: any) {
-      toastError(err.message || 'Gagal memverifikasi data.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 3. Set New Password
-  const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
     if (!newPassword || newPassword.length < 6) {
       toastError('Kata sandi baru minimal 6 karakter.');
       return;
@@ -136,23 +75,18 @@ export const ForgotPasswordPage: React.FC = () => {
 
     try {
       setLoading(true);
-      // Update password via user reset
-      const users = await api.getUsers({ search: foundCustomer?.customer_no });
-      const targetUser = users.find((u: any) => u.username.toLowerCase() === foundCustomer?.customer_no.toLowerCase());
-
-      if (targetUser) {
-        await api.resetUserPassword(targetUser.id, newPassword);
-      }
-
-      // Invalidate token
-      if (verifiedToken?.id) {
-        await api.deleteRegistrationToken(verifiedToken.id);
-      }
-
+      await api.forgotResetPassword({
+        token: tokenStr,
+        identifier: identifier.trim(),
+        nik_last4: nikLast4.trim(),
+        rt_rw_answer: rtRwAnswer.trim(),
+        new_password: newPassword
+      });
+      setStep(3);
       success('Kata sandi berhasil diubah! Silakan login dengan kata sandi baru.');
       setTimeout(() => {
         navigate('/login');
-      }, 1500);
+      }, 1800);
     } catch (err: any) {
       toastError(err.message || 'Gagal mereset kata sandi.');
     } finally {
@@ -285,8 +219,8 @@ export const ForgotPasswordPage: React.FC = () => {
           )}
 
           {step === 2 && (
-            /* STEP 2: Identity & Security Questions */
-            <form onSubmit={handleVerifyIdentity}>
+            /* STEP 2: Identity proof + new password (verified by the backend) */
+            <form onSubmit={handleResetSubmit}>
               <div
                 style={{
                   padding: 12,
@@ -316,7 +250,7 @@ export const ForgotPasswordPage: React.FC = () => {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 12 }}>
                 <Input
-                  label="Pertanyaan Keamanan 1: 4 Digit Terakhir NIK KTP Anda"
+                  label="Verifikasi 1: 4 Digit Terakhir NIK KTP Anda"
                   placeholder="Contoh: 0001"
                   value={nikLast4}
                   onChange={(e) => setNikLast4(e.target.value)}
@@ -325,10 +259,39 @@ export const ForgotPasswordPage: React.FC = () => {
                 />
 
                 <Input
-                  label="Pertanyaan Keamanan 2: Wilayah RT / RW Terdaftar"
+                  label="Verifikasi 2: Wilayah RT / RW Terdaftar"
                   placeholder="Contoh: RT 01 / RW 01"
                   value={rtRwAnswer}
                   onChange={(e) => setRtRwAnswer(e.target.value)}
+                  required
+                />
+
+                <Input
+                  label="Kata Sandi Baru"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Minimal 6 karakter"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  leftIcon={<Lock size={18} />}
+                  rightIcon={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={{ background: 'none', border: 'none', color: 'var(--slate-400)', cursor: 'pointer' }}
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  }
+                  required
+                />
+
+                <Input
+                  label="Konfirmasi Kata Sandi Baru"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Ulangi kata sandi baru"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  leftIcon={<Lock size={18} />}
                   required
                 />
               </div>
@@ -340,7 +303,7 @@ export const ForgotPasswordPage: React.FC = () => {
                 loading={loading}
                 style={{ width: '100%', marginTop: 16 }}
               >
-                Verifikasi Jawaban & Ganti Sandi
+                Verifikasi & Simpan Kata Sandi Baru
               </Button>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 14, fontSize: 13 }}>
@@ -359,65 +322,19 @@ export const ForgotPasswordPage: React.FC = () => {
           )}
 
           {step === 3 && (
-            /* STEP 3: Reset Password */
-            <form onSubmit={handleResetPassword}>
-              <div
-                style={{
-                  padding: 12,
-                  backgroundColor: 'var(--success-50)',
-                  borderRadius: 'var(--radius-md)',
-                  border: '1px solid rgba(16,185,129,0.3)',
-                  marginBottom: 16,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                }}
-              >
-                <CheckCircle2 size={20} color="var(--success-600)" />
-                <div style={{ fontSize: 13, color: 'var(--success-800)' }}>
-                  Identitas <strong>{foundCustomer?.full_name}</strong> terverifikasi. Silakan atur kata sandi baru.
-                </div>
-              </div>
-
-              <Input
-                label="Kata Sandi Baru"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="Minimal 6 karakter"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                leftIcon={<Lock size={18} />}
-                rightIcon={
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    style={{ background: 'none', border: 'none', color: 'var(--slate-400)', cursor: 'pointer' }}
-                  >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                }
-                required
-              />
-
-              <Input
-                label="Konfirmasi Kata Sandi Baru"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="Ulangi kata sandi baru"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                leftIcon={<Lock size={18} />}
-                required
-              />
-
-              <Button
-                type="submit"
-                variant="success"
-                icon={<CheckCircle2 size={16} />}
-                loading={loading}
-                style={{ width: '100%', marginTop: 14 }}
-              >
-                Simpan Kata Sandi Baru
-              </Button>
-            </form>
+            /* STEP 3: Success confirmation */
+            <div style={{ textAlign: 'center', padding: '18px 4px' }}>
+              <CheckCircle2 size={48} color="var(--success-600)" style={{ marginBottom: 12 }} />
+              <h2 style={{ fontSize: 17, fontWeight: 800, color: 'var(--success-800)', marginBottom: 6 }}>
+                Kata Sandi Berhasil Direset!
+              </h2>
+              <p style={{ fontSize: 13, color: 'var(--slate-600)' }}>
+                Silakan masuk menggunakan kata sandi baru Anda. Anda akan diarahkan ke halaman login secara otomatis...
+              </p>
+              <Link to="/login" className="btn btn-primary btn-sm" style={{ display: 'inline-flex', marginTop: 14 }}>
+                Ke Halaman Login
+              </Link>
+            </div>
           )}
         </Card>
       </div>

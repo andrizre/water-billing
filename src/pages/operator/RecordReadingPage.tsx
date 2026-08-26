@@ -137,9 +137,10 @@ export const RecordReadingPage: React.FC = () => {
       return;
     }
     if (isNegativeReading) {
-      if (!window.confirm(`PERINGATAN: Angka meter (${curVal}) lebih kecil dari bulan lalu (${prevReading}). Lanjutkan hanya jika meteran diganti baru?`)) {
-        return;
-      }
+      // Backends reject current < prev, so a replace-meter flow must be
+      // handled by admin via meter replacement — block here with guidance.
+      toastError(`Angka meter (${curVal}) tidak boleh lebih kecil dari stand sebelumnya (${prevReading}). Jika meter diganti baru, perbarui data meter terlebih dahulu.`);
+      return;
     }
     setConfirmModalOpen(true);
   };

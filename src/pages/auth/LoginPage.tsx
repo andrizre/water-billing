@@ -11,8 +11,8 @@ import { usePageTitle } from '../../hooks/usePageTitle';
 
 export const LoginPage: React.FC = () => {
   usePageTitle('Masuk ke Sistem', 'Portal autentikasi login pengelola dan pelanggan air minum desa.');
-  const [username, setUsername] = useState<string>('admin');
-  const [password, setPassword] = useState<string>('admin123');
+  const [username, setUsername] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
 
   const { login, role, isAuthenticated } = useAuth();
@@ -155,7 +155,8 @@ export const LoginPage: React.FC = () => {
             </div>
           </form>
 
-          {/* Quick Demo Credentials */}
+          {/* Quick Demo Credentials (development builds only) */}
+          {import.meta.env.DEV && (
           <div className="auth-demo-box">
             <div className="auth-demo-title">
               AKUN CONTOH (DEMO LOGIN):
@@ -191,6 +192,7 @@ export const LoginPage: React.FC = () => {
               </button>
             </div>
           </div>
+          )}
 
           {/* Public Bill Check Link */}
           <div style={{ marginTop: 20, textAlign: 'center' }}>

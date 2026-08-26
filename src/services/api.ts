@@ -179,7 +179,7 @@ async function handleSupabaseCall<T = any>(action: string, data: any): Promise<T
     case 'users_delete':
       return (await supabaseApiService.deleteUser(data.id)) as T;
     case 'users_reset_password':
-      return (await supabaseApiService.resetUserPassword(data.id)) as T;
+      return (await supabaseApiService.resetUserPassword(data.id, data.new_password)) as T;
 
     case 'customers_list':
       return (await supabaseApiService.getCustomers(data)) as T;
@@ -250,7 +250,7 @@ async function handleSupabaseCall<T = any>(action: string, data: any): Promise<T
       return (await supabaseApiService.updateSettings(data)) as T;
 
     case 'audit_list':
-      return (await supabaseApiService.getAuditLogs()) as T;
+      return (await supabaseApiService.getAuditLogs(data)) as T;
 
     // Announcements
     case 'announcements_list':
@@ -289,6 +289,8 @@ async function handleSupabaseCall<T = any>(action: string, data: any): Promise<T
       return (await supabaseApiService.verifyRegistrationToken(data.token, data.expectedType)) as T;
     case 'auth_register':
       return (await supabaseApiService.registerWithToken(data)) as T;
+    case 'auth_forgot_reset':
+      return (await supabaseApiService.forgotResetPassword(data)) as T;
 
     // Maintenance Expenses
     case 'maintenance_list':
@@ -361,7 +363,10 @@ function normalizeActionForServer(action: string): string {
     'tokens_create': 'createRegistrationToken',
     'tokens_delete': 'deleteRegistrationToken',
     'tokens_verify': 'verifyRegistrationToken',
-    'auth_register': 'registerWithToken'
+    'auth_register': 'registerWithToken',
+    'auth_forgot_reset': 'forgotPasswordReset',
+    'maintenance_create': 'createMaintenanceExpense',
+    'maintenance_delete': 'deleteMaintenanceExpense'
   };
   return map[action] || action;
 }
@@ -382,6 +387,8 @@ function unwrapServerResponse(action: string, result: any): any {
   if (action === 'announcements_list') return result.announcements || [];
   if (action === 'complaints_list') return result.complaints || [];
   if (action === 'subscription_requests_list') return result.requests || [];
+  if (action === 'tokens_list') return result.tokens || [];
+  if (action === 'maintenance_list') return result.expenses || [];
   return result;
 }
 
@@ -410,7 +417,7 @@ async function handleMockCall<T = any>(action: string, data: any): Promise<T> {
     case 'users_delete':
       return (await mockApiService.deleteUser(data.id)) as T;
     case 'users_reset_password':
-      return (await mockApiService.resetUserPassword(data.id)) as T;
+      return (await mockApiService.resetUserPassword(data.id, data.new_password)) as T;
 
     case 'customers_list':
       return (await mockApiService.getCustomers(data)) as T;
@@ -481,7 +488,7 @@ async function handleMockCall<T = any>(action: string, data: any): Promise<T> {
       return (await mockApiService.updateSettings(data)) as T;
 
     case 'audit_list':
-      return (await mockApiService.getAuditLogs()) as T;
+      return (await mockApiService.getAuditLogs(data)) as T;
 
     // Announcements
     case 'announcements_list':
@@ -520,6 +527,8 @@ async function handleMockCall<T = any>(action: string, data: any): Promise<T> {
       return (await mockApiService.verifyRegistrationToken(data.token, data.expectedType)) as T;
     case 'auth_register':
       return (await mockApiService.registerWithToken(data)) as T;
+    case 'auth_forgot_reset':
+      return (await mockApiService.forgotResetPassword(data)) as T;
 
     // Maintenance Expenses
     case 'maintenance_list':
@@ -622,6 +631,8 @@ export const api = {
   deleteRegistrationToken: (id: string) => callApi('tokens_delete', { id }),
   verifyRegistrationToken: (token: string, expectedType: string = 'registration') => callApi('tokens_verify', { token, expectedType }),
   registerWithToken: (data: any) => callApi('auth_register', data),
+  forgotResetPassword: (data: { token: string; identifier: string; nik_last4?: string; rt_rw_answer?: string; new_password: string }) =>
+    callApi('auth_forgot_reset', data),
 
   // Maintenance Expenses
   getMaintenanceExpenses: (params?: any) => callApi('maintenance_list', params),

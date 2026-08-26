@@ -3,6 +3,15 @@
  */
 
 /**
+ * Today's date in local timezone as YYYY-MM-DD.
+ * Unlike new Date().toISOString() this never shifts a day for UTC+7 (WIB) users.
+ */
+export function todayLocalISO(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/**
  * Format number to Indonesian Rupiah currency string (e.g. Rp 25.000)
  */
 export function formatRupiah(amount: number | string | null | undefined): string {

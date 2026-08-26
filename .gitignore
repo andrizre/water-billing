@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Secrets & local databases (contain credentials and resident NIK data)
+.env
+.env.*
+!.env.example
+sandmosquito.db
+sandmosquito.db-shm
+sandmosquito.db-wal

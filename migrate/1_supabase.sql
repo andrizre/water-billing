@@ -360,6 +360,7 @@ INSERT INTO public.settings (key, value) VALUES
   ('qris_info', 'Tersedia di loket kantor desa atau scan barcode resmi'),
   ('due_day_of_month', '20'),
   ('late_fee_flat', '5000'),
+  ('admin_fee_flat', '2500'),
   ('bill_footer_notes', 'Harap membayar tagihan tepat waktu sebelum tanggal 20. Terima kasih atas partisipasi Anda membangun desa.')
 ON CONFLICT (key) DO NOTHING;
 
@@ -369,12 +370,14 @@ INSERT INTO public.tariffs (id, code, name, category, base_fee, tier1_max, tier1
   ('TRF-03', 'S1-DESA', 'Sosial & Tempat Ibadah', 'Sosial', 0, 10, 1000, 20, 1500, 2000, 0, 'Tarif subsidi untuk tempat ibadah dan posyandu', true)
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO public.users (id, username, full_name, role, email, phone, is_active, customer_id) VALUES
-  ('USR-0001', 'admin', 'Administrator Utama', 'admin', 'admin@sandmosquito.desa.id', '081234567890', true, NULL),
-  ('USR-0002', 'operator', 'Petugas Lapangan', 'operator', 'operator@sandmosquito.desa.id', '081298765432', true, NULL),
-  ('USR-CUST-01', 'cust-2026-0001', 'Bpk. Budi Santoso', 'customer', '', '081234567801', true, 'CUST-ID-01'),
-  ('USR-CUST-02', 'cust-2026-0002', 'Ibu Siti Aminah', 'customer', '', '081234567802', true, 'CUST-ID-02')
+INSERT INTO public.users (id, username, password_hash, salt, full_name, role, email, phone, is_active, customer_id) VALUES
+  ('USR-0001', 'admin', '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', 'sha256', 'Administrator Utama', 'admin', 'admin@sandmosquito.desa.id', '081234567890', true, NULL),
+  ('USR-0002', 'operator', 'ec6e1c25258002eb1c67d15c7f45da7945fa4c58778fd7d88faa5e53e3b4698d', 'sha256', 'Petugas Lapangan', 'operator', 'operator@sandmosquito.desa.id', '081298765432', true, NULL),
+  ('USR-CUST-01', 'cust-2026-0001', '6b21de8534cbd0297f5217e53625b14f2ff44f317b262d6ea001da397b7552ea', 'sha256', 'Bpk. Budi Santoso', 'customer', '', '081234567801', true, 'CUST-ID-01'),
+  ('USR-CUST-02', 'cust-2026-0002', '6b21de8534cbd0297f5217e53625b14f2ff44f317b262d6ea001da397b7552ea', 'sha256', 'Ibu Siti Aminah', 'customer', '', '081234567802', true, 'CUST-ID-02')
 ON CONFLICT (id) DO NOTHING;
+-- Kata sandi di atas adalah hash SHA-256 dari: admin123 / operator123 / warga123.
+-- Tidak ada lagi kata sandi master; login hanya cocok dengan nilai tersimpan.
 
 INSERT INTO public.customers (id, customer_no, full_name, nik, phone, address, rt_rw, meter_id, meter_no, current_reading, tariff_id, tariff_name, status) VALUES
   ('CUST-ID-01', 'CUST-2026-0001', 'Bpk. Budi Santoso', '3201012345670001', '081234567801', 'RT 01 / RW 01 Dusun Krajan', 'RT 01 / RW 01', 'MTR-ID-01', 'MTR-8801', 142, 'TRF-01', 'Rumah Tangga Standar', 'Aktif'),

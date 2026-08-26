@@ -31,6 +31,22 @@ function nowTimeString(): string {
   return new Date().toISOString().replace('T', ' ').substring(0, 19);
 }
 
+/**
+ * SHA-256 hex digest for password storage/verification (Web Crypto).
+ * Legacy rows may still contain plain-text passwords; verification accepts
+ * both forms but every write path stores only the hash.
+ */
+async function sha256Hex(input: string): Promise<string> {
+  const bytes = new TextEncoder().encode(input);
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** PostgREST .or() filter values must not contain reserved characters. */
+function safeFilterValue(value: string): string {
+  return String(value).replace(/[(),]/g, ' ').trim();
+}
+
 export const supabaseApiService = {
   // ==================== 1. AUTH ====================
   async login(username: string, password: string): Promise<any> {
@@ -68,7 +84,9 @@ export const supabaseApiService = {
         if (custUser) {
           user = custUser;
         } else {
-          // Create customer user on the fly
+          // Create customer user on the fly with an UNUSABLE password:
+          // knowing only a phone number must never yield a working session.
+          // The warga can claim the account via admin-issued reset token.
           const newUser = {
             id: `USR-CUST-${Date.now()}`,
             username: cust.customer_no.toLowerCase(),
@@ -77,8 +95,10 @@ export const supabaseApiService = {
             customer_id: cust.id,
             phone: cust.phone || '',
             is_active: true,
+            password_hash: crypto.randomUUID(), // unknown secret => cannot log in
           };
-          await sb.from('users').insert(newUser);
+          const { error: insErr } = await sb.from('users').insert(newUser);
+          if (insErr) throw new Error(insErr.message);
           user = newUser;
         }
       }
@@ -99,19 +119,15 @@ export const supabaseApiService = {
       throw new Error('Akun Anda telah dinonaktifkan.');
     }
 
-    // Password checks: Support direct plaintext password stored in database (password_hash) with fallback for defaults
-    const dbPassword = user.password_hash || (user as any).password;
-    if (dbPassword && dbPassword !== 'demo') {
-      if (dbPassword !== password && password !== 'admin123') {
-        throw new Error('Kata sandi salah.');
-      }
-    } else {
-      if (user.role === 'admin' && password !== 'admin123' && password !== 'admin') {
-        throw new Error('Kata sandi salah. (Default: admin123)');
-      }
-      if (user.role === 'operator' && password !== 'operator123' && password !== 'operator') {
-        throw new Error('Kata sandi salah. (Default: operator123)');
-      }
+    // Password verification: sha256 hashes are authoritative, legacy plain-text
+    // rows still compare directly. There are NO master/default passwords.
+    const dbPassword = String(user.password_hash || (user as any).password || '');
+    if (!dbPassword) {
+      throw new Error('Akun ini belum memiliki kata sandi. Minta admin menerbitkan Token Reset Password.');
+    }
+    const hashedInput = await sha256Hex(password);
+    if (hashedInput !== dbPassword && password !== dbPassword) {
+      throw new Error('Kata sandi salah.');
     }
 
     const token = `supabase_token_${user.id}_${Date.now()}`;
@@ -149,25 +165,33 @@ export const supabaseApiService = {
   },
 
   async changePassword(oldPassword: string, newPassword: string): Promise<void> {
-    if (!newPassword || newPassword.length < 4) {
-      throw new Error('Kata sandi baru minimal 4 karakter.');
+    if (!newPassword || newPassword.length < 6) {
+      throw new Error('Kata sandi baru minimal 6 karakter.');
     }
     const currentUser = storage.getUser();
-    if (currentUser) {
-      // Save password directly in plain text in users table for easy management
-      await supabase()
-        .from('users')
-        .update({ password_hash: newPassword, updated_at: new Date().toISOString() })
-        .eq('id', currentUser.id);
+    if (!currentUser) throw new Error('Sesi tidak valid.');
 
-      await supabase().from('audit_logs').insert({
-        id: `LOG-${Date.now()}`,
-        user_id: currentUser.id,
-        username: currentUser.username,
-        action: 'CHANGE_PASSWORD',
-        details: 'Kata sandi berhasil diubah',
-      });
-    }
+    const sb = supabase();
+    const { data: row, error: fetchErr } = await sb.from('users').select('*').eq('id', currentUser.id).maybeSingle();
+    if (fetchErr) throw new Error(fetchErr.message);
+
+    const stored = String((row as any)?.password_hash ?? (row as any)?.password ?? '');
+    const oldMatches = !!oldPassword && (stored === oldPassword || stored === (await sha256Hex(oldPassword)));
+    if (!oldMatches) throw new Error('Kata sandi lama tidak cocok.');
+
+    const { error } = await sb
+      .from('users')
+      .update({ password_hash: await sha256Hex(newPassword), updated_at: new Date().toISOString() })
+      .eq('id', currentUser.id);
+    if (error) throw new Error(error.message);
+
+    await sb.from('audit_logs').insert({
+      id: `LOG-${Date.now()}`,
+      user_id: currentUser.id,
+      username: currentUser.username,
+      action: 'CHANGE_PASSWORD',
+      details: 'Kata sandi berhasil diubah',
+    });
   },
 
   async publicCheckBill(customerNo: string): Promise<any> {
@@ -216,6 +240,9 @@ export const supabaseApiService = {
         rt_rw: customer.rt_rw,
         status: customer.status,
         tariff_name: tariff?.name || 'Rumah Tangga Standar',
+        is_subsidized: !!customer.is_subsidized,
+        subsidy_type: customer.subsidy_type,
+        subsidy_max_amount: customer.subsidy_max_amount,
       },
       meter: meter ? { meter_no: meter.meter_no, current_reading: meter.current_reading } : null,
       total_unpaid_amount: totalUnpaid,
@@ -244,6 +271,7 @@ export const supabaseApiService = {
   async createUser(data: Partial<User> & { password?: string }): Promise<User> {
     const sb = supabase();
     const id = `USR-${Math.floor(1000 + Math.random() * 9000)}`;
+    const tempPassword = data.password || 'operator123';
     const newUser: any = {
       id,
       username: data.username || '',
@@ -252,6 +280,7 @@ export const supabaseApiService = {
       email: data.email || '',
       phone: data.phone || '',
       is_active: data.is_active !== undefined ? data.is_active : true,
+      password_hash: await sha256Hex(tempPassword), // never leave accounts passwordless
     };
 
     const { data: inserted, error } = await sb.from('users').insert(newUser).select().single();
@@ -270,8 +299,14 @@ export const supabaseApiService = {
     if (error) throw new Error(error.message);
   },
 
-  async resetUserPassword(id: string): Promise<{ new_password: string }> {
-    return { new_password: 'sandmosquito123' };
+  async resetUserPassword(id: string, newPassword?: string): Promise<{ new_password: string }> {
+    const pw = newPassword || `sm${Math.random().toString(36).slice(2, 10)}A1`;
+    const { error } = await supabase()
+      .from('users')
+      .update({ password_hash: await sha256Hex(pw), updated_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) throw new Error(error.message);
+    return { new_password: pw };
   },
 
   // ==================== 3. CUSTOMERS ====================
@@ -706,9 +741,11 @@ export const supabaseApiService = {
     let query = sb.from('payments').select('*');
 
     if (params.customer_id) query = query.eq('customer_id', params.customer_id);
+    if (params.payment_method) query = query.eq('payment_method', params.payment_method);
     if (params.search) {
+      const q = safeFilterValue(String(params.search));
       query = query.or(
-        `payment_no.ilike.%${params.search}%,customer_name.ilike.%${params.search}%`
+        `payment_no.ilike.%${q}%,customer_name.ilike.%${q}%`
       );
     }
 
@@ -723,9 +760,15 @@ export const supabaseApiService = {
     const sb = supabase();
     const { data: bill } = await sb.from('bills').select('*').eq('id', data.bill_id).maybeSingle();
     if (!bill) throw new Error('Tagihan tidak ditemukan.');
+    if (bill.status === 'Lunas') throw new Error('Tagihan ini sudah Lunas. Tidak ada saldo tertunggak.');
 
     const amount = Number(data.amount_paid);
     if (amount <= 0) throw new Error('Jumlah pembayaran harus lebih dari 0.');
+
+    const balanceBefore = Math.max(0, Number(bill.balance_due ?? bill.total_amount - (bill.paid_amount || 0)));
+    if (amount > balanceBefore) {
+      throw new Error(`Jumlah pembayaran (Rp ${amount.toLocaleString('id-ID')}) melebihi sisa tagihan (Rp ${balanceBefore.toLocaleString('id-ID')}).`);
+    }
 
     const prevPaid = Number(bill.paid_amount || 0);
     const newPaidTotal = prevPaid + amount;
@@ -733,10 +776,11 @@ export const supabaseApiService = {
     const newStatus = newBalance <= 0 ? 'Lunas' : 'Sebagian Dibayar';
 
     // Update bill
-    await sb
+    const { error: updErr } = await sb
       .from('bills')
       .update({ paid_amount: newPaidTotal, balance_due: newBalance, status: newStatus })
       .eq('id', bill.id);
+    if (updErr) throw new Error(updErr.message);
 
     const paymentId = `PAY-${Date.now().toString().slice(-6)}`;
     const newPayment: any = {
@@ -757,7 +801,8 @@ export const supabaseApiService = {
       notes: data.notes || '',
     };
 
-    await sb.from('payments').insert(newPayment);
+    const { error: payErr } = await sb.from('payments').insert(newPayment);
+    if (payErr) throw new Error(payErr.message);
 
     return { payment: newPayment, bill: { ...bill, paid_amount: newPaidTotal, balance_due: newBalance, status: newStatus }, status: newStatus };
   },
@@ -789,8 +834,17 @@ export const supabaseApiService = {
   // ==================== 9. DASHBOARDS & REPORTS ====================
   async getDashboardSummary(userRole: string, customerId?: string): Promise<any> {
     const sb = supabase();
-    const currentMonth = 8;
-    const currentYear = 2026;
+    // Derive "current" billing period from the latest bill; fall back to today.
+    const { data: lastBill } = await sb
+      .from('bills')
+      .select('period_month, period_year')
+      .order('period_year', { ascending: false })
+      .order('period_month', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const nowD = new Date();
+    const currentMonth = Number((lastBill as any)?.period_month) || nowD.getMonth() + 1;
+    const currentYear = Number((lastBill as any)?.period_year) || nowD.getFullYear();
 
     if (userRole === 'customer' && customerId) {
       const { data: customer } = await sb.from('customers').select('*').eq('id', customerId).maybeSingle();
@@ -997,11 +1051,16 @@ export const supabaseApiService = {
     return this.getSettings();
   },
 
-  async getAuditLogs(): Promise<AuditLog[]> {
-    const { data, error } = await supabase()
+  async getAuditLogs(params: any = {}): Promise<AuditLog[]> {
+    let query = supabase()
       .from('audit_logs')
-      .select('*')
-      .order('created_at', { ascending: false });
+      .select('*');
+    if (params.action) query = query.eq('action', params.action);
+    if (params.search) {
+      const q = safeFilterValue(String(params.search));
+      query = query.or(`username.ilike.%${q}%,details.ilike.%${q}%`);
+    }
+    const { data, error } = await query.order('created_at', { ascending: false }).limit(200);
     if (error) throw new Error(error.message);
     return data || [];
   },
@@ -1258,34 +1317,38 @@ export const supabaseApiService = {
 
   async registerWithToken(data: any): Promise<any> {
     const sb = supabase();
-    const { tokenStr, fullName, nik, phone, address, rtRw, username, password } = data;
+    // RegisterPage sends snake_case keys; accept both for safety.
+    const tokenStr = data.token ?? data.tokenStr;
+    const fullName = data.full_name ?? data.fullName;
+    const nik = data.nik;
+    const phone = data.phone;
+    const address = data.address;
+    const rtRw = data.rt_rw ?? data.rtRw;
+    const username = data.username;
+    const password = data.password;
+
+    if (!password || String(password).length < 6) {
+      throw new Error('Kata sandi minimal 6 karakter.');
+    }
 
     // 1. Verify token
     const { token: tok } = await this.verifyRegistrationToken(tokenStr);
 
-    // 2. Check if username already exists
-    const cleanUser = username.trim().toLowerCase();
-    const { data: existingUser } = await sb
-      .from('users')
-      .select('id')
-      .eq('username', cleanUser)
-      .maybeSingle();
-
-    if (existingUser) {
-      throw new Error(`Username "${username}" sudah digunakan. Silakan pilih username lain.`);
-    }
+    // 2. Rely on the DB UNIQUE constraint for usernames; pre-check is only UX.
+    const cleanUser = String(username).trim().toLowerCase();
 
     // 3. Create Customer
     const customerId = `CUST-ID-${Date.now().toString().slice(-4)}`;
-    const customerNo = `CUST-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const customerNo = `CUST-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    const { data: tariffs } = await sb.from('tariffs').select('*');
+    const { data: tariffs, error: tariffsErr } = await sb.from('tariffs').select('*');
+    if (tariffsErr) throw new Error(tariffsErr.message);
     const tariff = (tariffs || []).find((t: any) => t.id === tok.default_tariff_id) || (tariffs || [])[0];
 
     // Create meter for customer
-    const meterId = `MTR-ID-${Date.now().toString().slice(-4)}`;
+    const meterId = `MTR-ID-${Date.now().toString().slice(-6)}`;
     const meterNo = `MTR-${Math.floor(1000 + Math.random() * 9000)}`;
-    await sb.from('meters').insert({
+    const { error: meterErr } = await sb.from('meters').insert({
       id: meterId,
       meter_no: meterNo,
       customer_id: customerId,
@@ -1297,6 +1360,7 @@ export const supabaseApiService = {
       current_reading: 0,
       status: 'Aktif',
     });
+    if (meterErr) throw new Error(meterErr.message);
 
     const newCust: any = {
       id: customerId,
@@ -1314,29 +1378,38 @@ export const supabaseApiService = {
       status: 'Aktif',
     };
 
-    await sb.from('customers').insert(newCust);
+    const { error: custErr } = await sb.from('customers').insert(newCust);
+    if (custErr) throw new Error(custErr.message);
 
-    // 4. Create User login
+    // 4. Create User login with a REAL hashed credential
     const userId = `USR-${Math.floor(1000 + Math.random() * 9000)}`;
-    await sb.from('users').insert({
+    const { error: userErr } = await sb.from('users').insert({
       id: userId,
       username: cleanUser,
       full_name: fullName,
-      role: tok.target_role || 'customer',
+      role: tok.target_role === 'operator' ? 'operator' : 'customer',
       customer_id: customerId,
       phone: phone || '',
       is_active: true,
+      password_hash: await sha256Hex(String(password)),
     });
+    if (userErr) throw new Error(userErr.message);
 
-    // 5. Mark Token as Used
-    await sb
+    // 5. Atomically mark Token as Used (guards against double-spend)
+    const { data: usedRows, error: tokErr } = await sb
       .from('registration_tokens')
       .update({
         is_used: true,
         used_by_username: cleanUser,
         used_at: new Date().toISOString(),
       })
-      .eq('id', tok.id);
+      .eq('id', tok.id)
+      .eq('is_used', false)
+      .select();
+    if (tokErr) throw new Error(tokErr.message);
+    if (!usedRows || usedRows.length === 0) {
+      throw new Error('Token ini sudah pernah digunakan.');
+    }
 
     return {
       success: true,
@@ -1344,6 +1417,84 @@ export const supabaseApiService = {
       username: cleanUser,
       message: 'Registrasi berhasil! Silakan masuk dengan akun baru Anda.',
     };
+  },
+
+  /**
+   * Public self-service password reset: verifies the admin-issued reset token,
+   * the requester's identity (NIK last-4 OR RT/RW), then updates the password.
+   */
+  async forgotResetPassword(data: {
+    token: string;
+    identifier: string;
+    nik_last4?: string;
+    rt_rw_answer?: string;
+    new_password: string;
+  }): Promise<any> {
+    const sb = supabase();
+    const { token, identifier, nik_last4, rt_rw_answer, new_password } = data;
+    if (!token || !identifier || !new_password) throw new Error('Data reset tidak lengkap.');
+    if (String(new_password).length < 6) throw new Error('Kata sandi baru minimal 6 karakter.');
+
+    // 1. Token must exist, be unused, and be a password_reset token
+    const cleanToken = String(token).trim().toUpperCase();
+    const { data: tok, error: tokErr } = await sb
+      .from('registration_tokens')
+      .select('*')
+      .eq('token', safeFilterValue(cleanToken))
+      .maybeSingle();
+    if (tokErr) throw new Error(tokErr.message);
+    if (!tok) throw new Error('Token reset tidak valid.');
+    if (tok.is_used) throw new Error('Token reset sudah pernah digunakan.');
+    if (tok.token_type && tok.token_type !== 'password_reset') {
+      throw new Error('Token yang Anda masukkan adalah Token Pendaftaran Akun, bukan Token Reset Password.');
+    }
+
+    // 2. Find the customer account by identifier
+    const q = safeFilterValue(String(identifier).trim());
+    const { data: customers, error: custErr } = await sb
+      .from('customers')
+      .select('*')
+      .or(`customer_no.ilike.%${q}%,phone.ilike.%${q}%,full_name.ilike.%${q}%`)
+      .limit(1);
+    if (custErr) throw new Error(custErr.message);
+    const customer = (customers || [])[0];
+    if (!customer) throw new Error('Akun pelanggan dengan identitas tersebut tidak ditemukan.');
+
+    // 3. Server-... client-side identity proof: NIK last-4 OR RT/RW match
+    const actualNik = customer.nik || '';
+    const actualRtRw = (customer.rt_rw || '').toLowerCase().replace(/\s+/g, '');
+    const inputRtRw = String(rt_rw_answer || '').toLowerCase().replace(/\s+/g, '');
+    const nikOk = !!(actualNik.length >= 4 && nik_last4 && String(nik_last4).trim() === actualNik.slice(-4));
+    const rtOk = !!(actualRtRw && inputRtRw && (actualRtRw.includes(inputRtRw) || inputRtRw.includes(actualRtRw)));
+    if (!nikOk && !rtOk) {
+      throw new Error('Jawaban verifikasi NIK atau RT/RW tidak cocok dengan data terdaftar.');
+    }
+
+    // 4. Update the linked user's password
+    let targetUserId = customer.user_id as string | undefined;
+    if (!targetUserId) {
+      const { data: u } = await sb.from('users').select('id').eq('username', customer.customer_no.toLowerCase()).maybeSingle();
+      targetUserId = (u as any)?.id;
+    }
+    if (!targetUserId) throw new Error('Akun login untuk pelanggan ini tidak ditemukan. Hubungi admin.');
+
+    const { error: updErr } = await sb
+      .from('users')
+      .update({ password_hash: await sha256Hex(String(new_password)), updated_at: new Date().toISOString() })
+      .eq('id', targetUserId);
+    if (updErr) throw new Error(updErr.message);
+
+    // 5. Consume the token atomically
+    const { data: usedRows, error: useErr } = await sb
+      .from('registration_tokens')
+      .update({ is_used: true, used_by_username: customer.customer_no.toLowerCase(), used_at: new Date().toISOString() })
+      .eq('id', tok.id)
+      .eq('is_used', false)
+      .select();
+    if (useErr) throw new Error(useErr.message);
+    if (!usedRows || usedRows.length === 0) throw new Error('Token reset sudah pernah digunakan.');
+
+    return { success: true, message: 'Kata sandi berhasil diubah! Silakan login dengan kata sandi baru.' };
   },
 
   // 17. MAINTENANCE & EXPENSES

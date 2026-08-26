@@ -26,7 +26,7 @@ import { StatCard } from "../../components/common/StatCard";
 import { useToast } from "../../context/ToastContext";
 import { api } from "../../services/api";
 import { MaintenanceExpense, MaintenanceExpenseCategory } from "../../types";
-import { formatRupiah, formatDate, formatDateTime } from "../../utils/formatters";
+import { formatRupiah, formatDate, formatDateTime, todayLocalISO } from "../../utils/formatters";
 import { exportToCsv } from "../../utils/exportCsv";
 
 const CATEGORIES: MaintenanceExpenseCategory[] = [
@@ -55,7 +55,7 @@ export const MaintenanceExpensesPage: React.FC = () => {
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [amount, setAmount] = useState<string>("");
-  const [expenseDate, setExpenseDate] = useState<string>(new Date().toISOString().substring(0, 10));
+  const [expenseDate, setExpenseDate] = useState<string>(todayLocalISO());
   const [photoUrl, setPhotoUrl] = useState<string>("");
 
   const { success, error: toastError } = useToast();

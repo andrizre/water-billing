@@ -29,7 +29,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const savedUser = storage.getUser();
 
         if (savedToken && savedUser && savedUser.id && savedUser.role) {
+          // Optimistically restore, then validate against the backend.
           setUser(savedUser);
+          try {
+            await api.verifyAuth();
+          } catch (verifyErr: any) {
+            const msg = String(verifyErr?.message || '');
+            const networkProblem =
+              msg.includes('timeout') ||
+              msg.includes('Gagal menghubungi') ||
+              msg.includes('tidak berjalan') ||
+              msg.includes('Failed to fetch') ||
+              msg.includes('NetworkError');
+            if (!networkProblem) {
+              // Definitive rejection (expired/invalid session) -> force logout
+              storage.removeToken();
+              storage.removeUser();
+              setUser(null);
+            }
+            // Network problems keep the cached session for offline tolerance.
+          }
         } else {
           if (savedToken && !savedUser) {
             storage.removeToken();

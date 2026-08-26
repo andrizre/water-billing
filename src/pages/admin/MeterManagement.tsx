@@ -24,7 +24,7 @@ import { usePagination } from '../../hooks/usePagination';
 import { useToast } from '../../context/ToastContext';
 import { api } from '../../services/api';
 import { WaterMeter, Customer } from '../../types';
-import { formatM3, formatDate } from '../../utils/formatters';
+import { formatM3, formatDate, todayLocalISO } from '../../utils/formatters';
 
 export const MeterManagement: React.FC = () => {
   const [meters, setMeters] = useState<WaterMeter[]>([]);
@@ -42,7 +42,7 @@ export const MeterManagement: React.FC = () => {
     meter_no: '',
     customer_id: '',
     brand: 'Onda SNI 1/2"',
-    installation_date: new Date().toISOString().substring(0, 10),
+    installation_date: todayLocalISO(),
     initial_reading: '0',
     current_reading: '0',
     status: 'Aktif' as any
@@ -91,7 +91,7 @@ export const MeterManagement: React.FC = () => {
       meter_no: '',
       customer_id: '',
       brand: 'Onda SNI 1/2"',
-      installation_date: new Date().toISOString().substring(0, 10),
+      installation_date: todayLocalISO(),
       initial_reading: '0',
       current_reading: '0',
       status: 'Aktif'
@@ -141,7 +141,7 @@ export const MeterManagement: React.FC = () => {
           brand: formData.brand,
           installation_date: formData.installation_date,
           initial_reading: Number(formData.initial_reading),
-          current_reading: Number(formData.initial_reading),
+          current_reading: Number(formData.current_reading),
           status: formData.status
         });
         success('Meter air baru berhasil ditambahkan.');

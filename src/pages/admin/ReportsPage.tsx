@@ -101,7 +101,7 @@ export const ReportsPage: React.FC = () => {
     if (activeTab === 'billing') {
       const headers = ['No. Tagihan', 'ID Pelanggan', 'Nama Pelanggan', 'RT/RW', 'Periode', 'Pakai (m3)', 'Total Tagihan', 'Dibayar', 'Sisa', 'Status'];
       const rows = reportData.items.map((i: any) => [
-        i.bill_no, i.customer_no, i.customer_name, i.rt_rw, i.period, i.usage_m3, i.total_amount, i.paid_amount, i.balance_due, i.status
+        i.bill_no, i.customer_no, i.customer_name, i.rt_rw, i.period_month + "/" + i.period_year, i.usage_m3, i.total_amount, i.paid_amount, i.balance_due, i.status
       ]);
       exportToCsv(`laporan-tagihan-${periodMonth}-${periodYear}`, headers, rows);
     } else if (activeTab === 'payment') {
@@ -119,7 +119,7 @@ export const ReportsPage: React.FC = () => {
     } else if (activeTab === 'usage') {
       const headers = ['No. Pencatatan', 'ID Pelanggan', 'Nama Pelanggan', 'RT/RW', 'Periode', 'Meter Lalu', 'Meter Kini', 'Pemakaian (m3)'];
       const rows = reportData.items.map((i: any) => [
-        i.reading_no, i.customer_no, i.customer_name, i.rt_rw, i.period, i.prev_reading, i.current_reading, i.usage_m3
+        i.reading_no, i.customer_no, i.customer_name, i.rt_rw, i.period_month + "/" + i.period_year, i.prev_reading, i.current_reading, i.usage_m3
       ]);
       exportToCsv(`laporan-pemakaian-air-${periodMonth}-${periodYear}`, headers, rows);
     } else if (activeTab === 'profit_loss') {

@@ -100,6 +100,10 @@ export const PaymentEntryPage: React.FC = () => {
       toastError('Jumlah pembayaran harus lebih dari Rp 0.');
       return;
     }
+    if (dueAmount > 0 && payAmountNum > dueAmount) {
+      toastError(`Jumlah pembayaran melebihi sisa tagihan (${formatRupiah(dueAmount)}).`);
+      return;
+    }
     if (paymentMethod === 'Tunai' && tenderedNum < payAmountNum) {
       toastError('Uang tunai yang diterima kurang dari jumlah pembayaran.');
       return;

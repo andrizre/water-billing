@@ -48,6 +48,7 @@ export const Input: React.FC<InputProps> = ({
         )}
         <input
           id={inputId}
+          required={required}
           className={`form-control ${error ? 'border-danger' : ''} ${className}`.trim()}
           style={{
             paddingLeft: leftIcon ? 38 : undefined,

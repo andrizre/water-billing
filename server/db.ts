@@ -16,6 +16,53 @@ export function hashPassword(password: string, salt?: string): { hash: string; s
   return { hash, salt: finalSalt };
 }
 
+/**
+ * Lightweight column migration for databases created by older versions.
+ * CREATE TABLE IF NOT EXISTS does not add columns to existing tables.
+ */
+function ensureColumn(table: string, column: string, ddl: string) {
+  const cols = db.query(`PRAGMA table_info(${table})`).all() as any[];
+  if (!cols.some((c) => c.name === column)) {
+    db.run(`ALTER TABLE ${table} ADD COLUMN ${ddl}`);
+  }
+}
+
+function migrateExistingTables() {
+  // customers: subsidy program columns
+  ensureColumn("customers", "is_subsidized", "is_subsidized INTEGER NOT NULL DEFAULT 0");
+  ensureColumn("customers", "subsidy_type", "subsidy_type TEXT DEFAULT 'none'");
+  ensureColumn("customers", "subsidy_max_amount", "subsidy_max_amount REAL DEFAULT 0");
+  ensureColumn("customers", "subsidy_notes", "subsidy_notes TEXT");
+  ensureColumn("customers", "meter_id", "meter_id TEXT");
+  ensureColumn("customers", "current_reading", "current_reading REAL DEFAULT 0");
+  ensureColumn("customers", "tariff_name", "tariff_name TEXT");
+  // bills: fee/subsidy breakdown + denormalized customer info
+  ensureColumn("bills", "base_amount", "base_amount REAL NOT NULL DEFAULT 0");
+  ensureColumn("bills", "late_fee", "late_fee REAL NOT NULL DEFAULT 0");
+  ensureColumn("bills", "admin_fee", "admin_fee REAL NOT NULL DEFAULT 0");
+  ensureColumn("bills", "original_amount", "original_amount REAL DEFAULT 0");
+  ensureColumn("bills", "subsidy_amount", "subsidy_amount REAL DEFAULT 0");
+  ensureColumn("bills", "is_subsidized", "is_subsidized INTEGER NOT NULL DEFAULT 0");
+  ensureColumn("bills", "subsidy_type", "subsidy_type TEXT DEFAULT 'none'");
+  ensureColumn("bills", "subsidy_notes", "subsidy_notes TEXT");
+  ensureColumn("bills", "customer_name", "customer_name TEXT");
+  ensureColumn("bills", "customer_no", "customer_no TEXT");
+  ensureColumn("bills", "rt_rw", "rt_rw TEXT");
+  ensureColumn("bills", "phone", "phone TEXT");
+  // payments: denormalized info for receipts/reports
+  ensureColumn("payments", "bill_no", "bill_no TEXT");
+  ensureColumn("payments", "period_month", "period_month INTEGER");
+  ensureColumn("payments", "period_year", "period_year INTEGER");
+  ensureColumn("payments", "customer_name", "customer_name TEXT");
+  ensureColumn("payments", "customer_no", "customer_no TEXT");
+  ensureColumn("payments", "rt_rw", "rt_rw TEXT");
+  ensureColumn("payments", "cashier_name", "cashier_name TEXT");
+  // registration_tokens: typed tokens (registration vs password_reset)
+  ensureColumn("registration_tokens", "token_type", "token_type TEXT NOT NULL DEFAULT 'registration'");
+  ensureColumn("registration_tokens", "customer_id", "customer_id TEXT");
+  ensureColumn("registration_tokens", "customer_no", "customer_no TEXT");
+}
+
 export function initDatabase() {
   // 1. Users Table
   db.run(`
@@ -269,6 +316,9 @@ export function initDatabase() {
     CREATE TABLE IF NOT EXISTS registration_tokens (
       id TEXT PRIMARY KEY,
       token TEXT UNIQUE NOT NULL,
+      token_type TEXT NOT NULL DEFAULT 'registration',
+      customer_id TEXT,
+      customer_no TEXT,
       recipient_name TEXT,
       target_role TEXT NOT NULL DEFAULT 'customer',
       default_tariff_id TEXT,
@@ -297,6 +347,9 @@ export function initDatabase() {
     );
   `);
 
+  // Align pre-existing databases with the current schema
+  migrateExistingTables();
+
   // Seed Initial Demo Data if Database is Empty
   seedInitialData();
 }
@@ -321,6 +374,7 @@ function seedInitialData() {
     qris_info: "Tersedia di loket kantor desa atau scan barcode resmi",
     due_day_of_month: "20",
     late_fee_flat: "5000",
+    admin_fee_flat: "2500",
     bill_footer_notes: "Terima kasih atas pembayaran tepat waktu demi kelancaran pasokan air desa."
   };
 
@@ -355,9 +409,11 @@ function seedInitialData() {
     VALUES (?, ?, ?, ?, ?, ?, ?, 'Aktif', ?, ?)
   `);
 
-  // Admin & Operator Users (Stored in plain text for simple direct database management)
-  insertUser.run("USR-001", "admin", "admin123", "plain", "Administrator BUMDes", "admin", "admin@sandmosquito.desa.id", "0811111111", now, now);
-  insertUser.run("USR-002", "operator", "operator123", "plain", "Budi Santoso (Petugas Loket RT 01)", "operator", "budi@sandmosquito.desa.id", "0812222222", now, now);
+  // Admin & Operator Users (passwords stored as pbkdf2 hashes; see README for demo credentials)
+  const adminHash = hashPassword("admin123");
+  insertUser.run("USR-001", "admin", adminHash.hash, adminHash.salt, "Administrator BUMDes", "admin", "admin@sandmosquito.desa.id", "0811111111", now, now);
+  const operatorHash = hashPassword("operator123");
+  insertUser.run("USR-002", "operator", operatorHash.hash, operatorHash.salt, "Budi Santoso (Petugas Loket RT 01)", "operator", "budi@sandmosquito.desa.id", "0812222222", now, now);
 
   // Customers Data
   const customersData = [
@@ -371,10 +427,19 @@ function seedInitialData() {
   for (let i = 0; i < customersData.length; i++) {
     const c = customersData[i];
     const userId = `USR-CUST-00${i + 1}`;
-    insertUser.run(userId, c.no, "warga123", "plain", c.name, "customer", "", c.phone, now, now);
+    const custHash = hashPassword("warga123");
+    insertUser.run(userId, c.no.toLowerCase(), custHash.hash, custHash.salt, c.name, "customer", "", c.phone, now, now);
     insertCustomer.run(c.id, c.no, userId, c.name, c.nik, c.phone, c.addr, c.rtrw, c.meter, c.tariff, now, now);
     insertMeter.run(`MTR-ID-00${i + 1}`, c.meter, c.id, 'Onda SNI 1/2"', "2025-01-10", 0, c.reading, now, now);
   }
+
+  // Demo tokens: one public registration token + one password-reset token
+  const insertToken = db.prepare(`
+    INSERT INTO registration_tokens (id, token, token_type, recipient_name, target_role, default_tariff_id, is_used, notes, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)
+  `);
+  insertToken.run("TOK-001", "DESA-AIR-2026", "registration", "Warga Baru Dusun Krajan", "customer", "TRF-01", "Token pendaftaran umum warga", now);
+  insertToken.run("TOK-RST-001", "RESET-SUPARDI-2026", "password_reset", "Bpk. Supardi", "customer", "", "Token reset sandi khusus CUST-2026-0001", now);
 
   // 4. Insert Meter Readings, Bills, and Payments
   const insertReading = db.prepare(`
@@ -406,10 +471,10 @@ function seedInitialData() {
   insertBill.run("INV-003", "INV-202608-0004", "CUST-ID-004", "RDM-003", 8, 2026, 73, 89, 16, 5000, 38000, 0, 43000, 0, 43000, "2026-08-20", "Belum Dibayar", now, now);
 
   // 5. Initial Audit Log
-  db.run(`
-    INSERT INTO audit_logs (id, user_id, username, action, details, ip_address, created_at)
-    VALUES ('LOG-001', 'USR-001', 'admin', 'SYSTEM_INIT', 'Inisialisasi database SQLite lokal berhasil dibuat.', '127.0.0.1', '${now}')
-  `);
+  db.run(
+    "INSERT INTO audit_logs (id, user_id, username, action, details, ip_address, created_at) VALUES ('LOG-001', 'USR-001', 'admin', 'SYSTEM_INIT', 'Inisialisasi database SQLite lokal berhasil dibuat.', '127.0.0.1', ?)",
+    [now]
+  );
 
   console.log("✅ Data awal SQLite berhasil disiapkan di: " + dbPath);
 }

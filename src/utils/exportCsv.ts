@@ -4,7 +4,12 @@
 export function exportToCsv(filename: string, headers: string[], rows: (string | number)[][]): void {
   const sanitizeCell = (cell: string | number | null | undefined): string => {
     if (cell === null || cell === undefined) return '""';
-    const str = String(cell).replace(/"/g, '""');
+    let str = String(cell).replace(/"/g, '""');
+    // CSV formula-injection guard: prefix dangerous leading characters so
+    // spreadsheet apps treat the cell as text instead of a formula.
+    if (/^[=+\-@\t\r]/.test(str)) {
+      str = "'" + str;
+    }
     return `"${str}"`;
   };
 

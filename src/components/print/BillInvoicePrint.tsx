@@ -30,7 +30,12 @@ export const BillInvoiceModal: React.FC<BillInvoiceModalProps> = ({
   if (!bill) return null;
 
   const adminFeeVal = Number(bill.admin_fee !== undefined ? bill.admin_fee : (settings.admin_fee_flat || 2500));
-  const breakdown = calculateTieredBillBreakdown(bill.usage_m3, tariff, false, adminFeeVal);
+  // Itemize per-tier ONLY when the real tariff was supplied by the caller.
+  // Recomputing with library-default rates contradicts the stored bill totals,
+  // so without a tariff we print the bill's own stored figures instead.
+  const breakdown = tariff ? calculateTieredBillBreakdown(bill.usage_m3, tariff, false, adminFeeVal) : null;
+  const storedBaseFee = Number(bill.base_amount ?? breakdown?.base_fee ?? 0);
+  const storedUsageAmount = Number(bill.usage_amount ?? breakdown?.usage_amount ?? 0);
 
   const handlePrint = () => {
     window.print();
@@ -231,10 +236,10 @@ export const BillInvoiceModal: React.FC<BillInvoiceModalProps> = ({
                 <td style={{ padding: '8px 10px', textAlign: 'center' }}>-</td>
                 <td style={{ padding: '8px 10px', textAlign: 'right' }}>-</td>
                 <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>
-                  {formatRupiah(breakdown.base_fee)}
+                  {formatRupiah(breakdown ? breakdown.base_fee : storedBaseFee)}
                 </td>
               </tr>
-              {breakdown.tier1_usage > 0 && (
+              {breakdown && breakdown.tier1_usage > 0 && (
                 <tr style={{ borderBottom: '1px solid var(--slate-200)' }}>
                   <td style={{ padding: '8px 10px' }}>Pemakaian Tier 1 (0 - {tariff?.tier1_max || 10} m³)</td>
                   <td style={{ padding: '8px 10px', textAlign: 'center' }}>{breakdown.tier1_usage} m³</td>
@@ -244,7 +249,7 @@ export const BillInvoiceModal: React.FC<BillInvoiceModalProps> = ({
                   </td>
                 </tr>
               )}
-              {breakdown.tier2_usage > 0 && (
+              {breakdown && breakdown.tier2_usage > 0 && (
                 <tr style={{ borderBottom: '1px solid var(--slate-200)' }}>
                   <td style={{ padding: '8px 10px' }}>
                     Pemakaian Tier 2 ({(tariff?.tier1_max || 10) + 1} - {tariff?.tier2_max || 20} m³)
@@ -256,13 +261,23 @@ export const BillInvoiceModal: React.FC<BillInvoiceModalProps> = ({
                   </td>
                 </tr>
               )}
-              {breakdown.tier3_usage > 0 && (
+              {breakdown && breakdown.tier3_usage > 0 && (
                 <tr style={{ borderBottom: '1px solid var(--slate-200)' }}>
                   <td style={{ padding: '8px 10px' }}>Pemakaian Tier 3 (&gt; {tariff?.tier2_max || 20} m³)</td>
                   <td style={{ padding: '8px 10px', textAlign: 'center' }}>{breakdown.tier3_usage} m³</td>
                   <td style={{ padding: '8px 10px', textAlign: 'right' }}>{formatRupiah(breakdown.tier3_rate)}/m³</td>
                   <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>
                     {formatRupiah(breakdown.tier3_amount)}
+                  </td>
+                </tr>
+              )}
+              {!breakdown && storedUsageAmount > 0 && (
+                <tr style={{ borderBottom: '1px solid var(--slate-200)' }}>
+                  <td style={{ padding: '8px 10px' }}>Pemakaian Air (sesuai golongan tarif)</td>
+                  <td style={{ padding: '8px 10px', textAlign: 'center' }}>{bill.usage_m3} m³</td>
+                  <td style={{ padding: '8px 10px', textAlign: 'right' }}>-</td>
+                  <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>
+                    {formatRupiah(storedUsageAmount)}
                   </td>
                 </tr>
               )}
@@ -286,7 +301,7 @@ export const BillInvoiceModal: React.FC<BillInvoiceModalProps> = ({
                   </td>
                 </tr>
               )}
-              {((bill.is_subsidized && (bill.subsidy_amount || 0) > 0) || (breakdown.subsidy_amount && breakdown.subsidy_amount > 0)) && (
+              {((bill.is_subsidized && (bill.subsidy_amount || 0) > 0) || (breakdown?.subsidy_amount !== undefined && Number(breakdown.subsidy_amount) > 0)) && (
                 <tr style={{ borderBottom: '1px solid var(--slate-200)', color: 'var(--success-700)', backgroundColor: 'rgba(16, 185, 129, 0.08)' }}>
                   <td style={{ padding: '8px 10px', fontWeight: 700 }}>
                     Subsidi Air Desa BUMDes ({bill.subsidy_notes || customer?.subsidy_notes || (bill.subsidy_type === 'gratis' ? '100% Gratis' : 'Plafon Maksimal Bayar')})
@@ -294,7 +309,7 @@ export const BillInvoiceModal: React.FC<BillInvoiceModalProps> = ({
                   <td style={{ padding: '8px 10px', textAlign: 'center' }}>-</td>
                   <td style={{ padding: '8px 10px', textAlign: 'right' }}>Subsidi</td>
                   <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700 }}>
-                    -{formatRupiah(bill.subsidy_amount || breakdown.subsidy_amount || 0)}
+                    -{formatRupiah(bill.subsidy_amount || breakdown?.subsidy_amount || 0)}
                   </td>
                 </tr>
               )}

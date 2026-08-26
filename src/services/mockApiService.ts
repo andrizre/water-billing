@@ -55,10 +55,31 @@ interface MockDatabase {
 let _cachedDb: MockDatabase | null = null;
 let _saveTimeout: any = null;
 
+/**
+ * Upgrade older mock databases whose seeded accounts predate credentials.
+ * Assigns the documented demo passwords so admin/operator/warga logins keep
+ * working after the removal of master-password fallbacks. Mock mode only —
+ * this is a local browser simulator, not a real credential store.
+ */
+function ensureUserCredentials(db: MockDatabase): boolean {
+  let changed = false;
+  for (const u of db.users || []) {
+    const hasSecret = Boolean((u as any).password_hash || (u as any).password);
+    if (hasSecret) continue;
+    let defaultPassword = 'warga123';
+    if (u.username.toLowerCase() === 'admin') defaultPassword = 'admin123';
+    else if (u.username.toLowerCase().startsWith('operator')) defaultPassword = 'operator123';
+    (u as any).password_hash = defaultPassword;
+    changed = true;
+  }
+  return changed;
+}
+
 function getDatabase(): MockDatabase {
   if (_cachedDb) return _cachedDb;
 
   let db = storage.getMockDb();
+  let freshlySeeded = false;
   if (!db || !db.users || db.users.length === 0) {
     db = {
       users: [...initialUsers],
@@ -76,6 +97,7 @@ function getDatabase(): MockDatabase {
       registrationTokens: [...initialRegistrationTokens],
       maintenanceExpenses: [...initialMaintenanceExpenses]
     };
+    freshlySeeded = true;
     storage.setMockDb(db);
   }
   if (!db.announcements) db.announcements = [...initialAnnouncements];
@@ -83,7 +105,12 @@ function getDatabase(): MockDatabase {
   if (!db.subscriptionRequests) db.subscriptionRequests = [...initialSubscriptionRequests];
   if (!db.registrationTokens) db.registrationTokens = [...initialRegistrationTokens];
   if (!db.maintenanceExpenses) db.maintenanceExpenses = [...initialMaintenanceExpenses];
-  
+
+  // Migrate stale databases (seeded before password support) on first load
+  if (!freshlySeeded && ensureUserCredentials(db)) {
+    storage.setMockDb(db);
+  }
+
   _cachedDb = db;
   return db;
 }
@@ -122,18 +149,21 @@ export const mockApiService = {
       if (customer) {
         user = db.users.find((u) => u.customer_id === customer?.id);
         if (!user) {
-          // create customer user on the fly
-          user = {
+          // Create customer user on the fly with an UNUSABLE password:
+          // knowing only a phone number must never yield a working session.
+          const lockedUser = {
             id: `USR-CUST-${Date.now()}`,
             username: customer.customer_no.toLowerCase(),
             full_name: customer.full_name,
-            role: 'customer',
+            role: 'customer' as const,
             customer_id: customer.id,
             phone: customer.phone,
             is_active: true,
+            password_hash: `locked-${Math.random().toString(36).slice(2)}`,
             created_at: nowTimeString()
           };
-          db.users.push(user);
+          user = lockedUser as User;
+          db.users.push(lockedUser as User);
           saveDatabase(db);
         }
       }
@@ -149,19 +179,14 @@ export const mockApiService = {
       throw new Error('Akun Anda telah dinonaktifkan.');
     }
 
-    // Password checks: Support direct plaintext password stored in mock database with fallback for defaults
-    const dbPassword = (user as any).password_hash || (user as any).password;
-    if (dbPassword && dbPassword !== 'demo') {
-      if (dbPassword !== password && password !== 'admin123') {
-        throw new Error('Kata sandi salah.');
-      }
-    } else {
-      if (user.role === 'admin' && password !== 'admin123' && password !== 'admin') {
-        throw new Error('Kata sandi salah. (Default: admin123)');
-      }
-      if (user.role === 'operator' && password !== 'operator123' && password !== 'operator') {
-        throw new Error('Kata sandi salah. (Default: operator123)');
-      }
+    // Password check: exact match against the stored secret only.
+    // There are NO master/default passwords in any role.
+    const dbPassword = String((user as any).password_hash || (user as any).password || '');
+    if (!dbPassword) {
+      throw new Error('Akun ini belum memiliki kata sandi. Minta admin menerbitkan Token Reset Password.');
+    }
+    if (dbPassword !== password) {
+      throw new Error('Kata sandi salah.');
     }
 
     const token = `mock_token_${user.id}_${Date.now()}`;
@@ -201,13 +226,17 @@ export const mockApiService = {
   },
 
   async changePassword(oldPassword: string, newPassword: string): Promise<void> {
-    if (!newPassword || newPassword.length < 4) {
-      throw new Error('Kata sandi baru minimal 4 karakter.');
+    if (!newPassword || newPassword.length < 6) {
+      throw new Error('Kata sandi baru minimal 6 karakter.');
     }
     const db = getDatabase();
     const currentUser = storage.getUser();
     if (currentUser) {
       const targetUser = db.users.find((u) => u.id === currentUser.id);
+      const stored = String(((targetUser as any)?.password_hash) || ((targetUser as any)?.password) || '');
+      if (!oldPassword || stored !== oldPassword) {
+        throw new Error('Kata sandi lama tidak cocok.');
+      }
       if (targetUser) {
         (targetUser as any).password_hash = newPassword;
         (targetUser as any).password = newPassword;
@@ -249,7 +278,10 @@ export const mockApiService = {
         address: customer.address,
         rt_rw: customer.rt_rw,
         status: customer.status,
-        tariff_name: tariff?.name || 'Rumah Tangga Standar'
+        tariff_name: tariff?.name || 'Rumah Tangga Standar',
+        is_subsidized: !!(customer as any).is_subsidized,
+        subsidy_type: (customer as any).subsidy_type,
+        subsidy_max_amount: (customer as any).subsidy_max_amount
       },
       meter: meter ? { meter_no: meter.meter_no, current_reading: meter.current_reading } : null,
       total_unpaid_amount: totalUnpaid,
@@ -287,6 +319,7 @@ export const mockApiService = {
       email: data.email || '',
       phone: data.phone || '',
       is_active: data.is_active !== undefined ? data.is_active : true,
+      password_hash: data.password || 'operator123',
       created_at: nowTimeString()
     };
     db.users.push(newUser);
@@ -309,8 +342,14 @@ export const mockApiService = {
     saveDatabase(db);
   },
 
-  async resetUserPassword(id: string): Promise<{ new_password: string }> {
-    return { new_password: 'sandmosquito123' };
+  async resetUserPassword(id: string, newPassword?: string): Promise<{ new_password: string }> {
+    const db = getDatabase();
+    const targetUser = db.users.find((u) => u.id === id);
+    if (!targetUser) throw new Error('Akun tidak ditemukan.');
+    const pw = newPassword || `sm${Math.random().toString(36).slice(2, 10)}A1`;
+    (targetUser as any).password_hash = pw;
+    saveDatabase(db);
+    return { new_password: pw };
   },
 
   // 3. CUSTOMERS
@@ -757,6 +796,7 @@ export const mockApiService = {
     const db = getDatabase();
     let res = [...db.payments];
     if (params.customer_id) res = res.filter((p) => p.customer_id === params.customer_id);
+    if (params.payment_method) res = res.filter((p) => p.payment_method === params.payment_method);
     if (params.search) {
       const q = params.search.toLowerCase();
       res = res.filter(
@@ -995,9 +1035,19 @@ export const mockApiService = {
     return db.settings;
   },
 
-  async getAuditLogs(): Promise<AuditLog[]> {
+  async getAuditLogs(params: any = {}): Promise<AuditLog[]> {
     const db = getDatabase();
-    return db.auditLogs;
+    let res = [...db.auditLogs];
+    if (params.action) res = res.filter((l) => l.action === params.action);
+    if (params.search) {
+      const q = String(params.search).toLowerCase();
+      res = res.filter(
+        (l) =>
+          (l.username || '').toLowerCase().includes(q) ||
+          (l.details || '').toLowerCase().includes(q)
+      );
+    }
+    return res.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
   },
 
   // 11. ANNOUNCEMENTS
@@ -1249,7 +1299,19 @@ export const mockApiService = {
 
   async registerWithToken(data: any): Promise<any> {
     const db = getDatabase();
-    const { tokenStr, fullName, nik, phone, address, rtRw, username } = data;
+    // RegisterPage sends snake_case keys; accept both for safety.
+    const tokenStr = data.token ?? data.tokenStr;
+    const fullName = data.full_name ?? data.fullName;
+    const nik = data.nik;
+    const phone = data.phone;
+    const address = data.address;
+    const rtRw = data.rt_rw ?? data.rtRw;
+    const username = data.username;
+    const password = data.password;
+
+    if (!password || String(password).length < 6) {
+      throw new Error('Kata sandi minimal 6 karakter.');
+    }
 
     // 1. Verify token
     const { token: tok } = await this.verifyRegistrationToken(tokenStr);
@@ -1303,12 +1365,13 @@ export const mockApiService = {
       id: `USR-${Math.floor(1000 + Math.random() * 9000)}`,
       username: cleanUser,
       full_name: fullName,
-      role: tok.target_role || 'customer',
+      role: tok.target_role === 'operator' ? 'operator' : 'customer',
       customer_id: customerId,
       phone: phone || '',
       is_active: true,
+      password_hash: String(password),
       created_at: nowTimeString()
-    });
+    } as any);
 
     // Mark token used
     tok.is_used = true;
@@ -1323,6 +1386,66 @@ export const mockApiService = {
       username: cleanUser,
       message: 'Registrasi berhasil! Silakan login.'
     };
+  },
+
+  /**
+   * Public self-service password reset: verifies the admin-issued reset token,
+   * the requester's identity (NIK last-4 OR RT/RW), then updates the password.
+   */
+  async forgotResetPassword(data: {
+    token: string;
+    identifier: string;
+    nik_last4?: string;
+    rt_rw_answer?: string;
+    new_password: string;
+  }): Promise<any> {
+    const db = getDatabase();
+    const { token, identifier, nik_last4, rt_rw_answer, new_password } = data;
+    if (!token || !identifier || !new_password) throw new Error('Data reset tidak lengkap.');
+    if (String(new_password).length < 6) throw new Error('Kata sandi baru minimal 6 karakter.');
+
+    // 1. Token must exist, be unused, and be a password_reset token
+    const clean = String(token).trim().toUpperCase();
+    const tok = (db.registrationTokens || []).find((t) => t.token.toUpperCase() === clean);
+    if (!tok) throw new Error('Token reset tidak valid.');
+    if (tok.is_used) throw new Error('Token reset sudah pernah digunakan.');
+    if ((tok as any).token_type && (tok as any).token_type !== 'password_reset') {
+      throw new Error('Token yang Anda masukkan adalah Token Pendaftaran Akun, bukan Token Reset Password.');
+    }
+
+    // 2. Find the customer by identifier
+    const q = String(identifier).trim().toLowerCase();
+    const customer = db.customers.find(
+      (c) =>
+        c.customer_no.toLowerCase() === q ||
+        (c.phone && c.phone.includes(q)) ||
+        c.full_name.toLowerCase().includes(q)
+    );
+    if (!customer) throw new Error('Akun pelanggan dengan identitas tersebut tidak ditemukan.');
+
+    // 3. Identity proof: NIK last-4 OR RT/RW match
+    const actualNik = (customer as any).nik || '';
+    const actualRtRw = (customer.rt_rw || '').toLowerCase().replace(/\s+/g, '');
+    const inputRtRw = String(rt_rw_answer || '').toLowerCase().replace(/\s+/g, '');
+    const nikOk = !!(actualNik.length >= 4 && nik_last4 && String(nik_last4).trim() === actualNik.slice(-4));
+    const rtOk = !!(actualRtRw && inputRtRw && (actualRtRw.includes(inputRtRw) || inputRtRw.includes(actualRtRw)));
+    if (!nikOk && !rtOk) {
+      throw new Error('Jawaban verifikasi NIK atau RT/RW tidak cocok dengan data terdaftar.');
+    }
+
+    // 4. Update the linked user's password
+    let targetUser = db.users.find((u) => u.customer_id === customer.id)
+      || db.users.find((u) => u.username.toLowerCase() === customer.customer_no.toLowerCase());
+    if (!targetUser) throw new Error('Akun login untuk pelanggan ini tidak ditemukan. Hubungi admin.');
+    (targetUser as any).password_hash = String(new_password);
+
+    // 5. Consume the token
+    (tok as any).is_used = true;
+    (tok as any).used_by_username = targetUser.username;
+    (tok as any).used_at = nowTimeString();
+
+    saveDatabase(db);
+    return { success: true, message: 'Kata sandi berhasil diubah! Silakan login dengan kata sandi baru.' };
   },
 
   async resetToDefault(): Promise<void> {
